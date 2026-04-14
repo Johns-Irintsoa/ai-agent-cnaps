@@ -1,0 +1,9 @@
+langchain
+langchain-ollama
+langchain-core
+langchain-text-splitters
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain-community
+unstructured
