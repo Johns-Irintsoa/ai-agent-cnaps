@@ -36,6 +36,7 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
+      - ./data:/app/data
     depends_on:
       ollama:
         condition: service_healthy

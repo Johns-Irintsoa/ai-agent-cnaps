@@ -2,8 +2,13 @@ langchain
 langchain-ollama
 langchain-core
 langchain-text-splitters
+langchain-community
 fastapi
 uvicorn[standard]
 python-dotenv
-langchain-community
 unstructured
+httpx==0.27.2
+beautifulsoup4==4.12.3
+pypdf==4.3.1
+python-docx==1.1.2
+rarfile
