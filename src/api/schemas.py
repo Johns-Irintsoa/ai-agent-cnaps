@@ -23,3 +23,8 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     answer: str
+
+
+class WebIngestionResponse(BaseModel):
+    status: str
+    message: str

@@ -9,11 +9,15 @@ load_dotenv()
 import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 
-if os.environ.get("RUN_CLASSIFICATION"):
+if os.environ.get("RUN_SCRAPPER"):
+    from ingestion.scrapper import run_scrapper
+    run_scrapper()
+
+elif os.environ.get("RUN_CLASSIFICATION"):
     from data_classificateur.ClassificationLLM import (
-        run, 
-        print_summary, 
-        save_json, 
+        run,
+        print_summary,
+        save_json,
         save_grouped_json,
     )
     OUTPUT_DIR = "data/classification/list"
@@ -23,6 +27,7 @@ if os.environ.get("RUN_CLASSIFICATION"):
         print_summary(results)
         save_json(results, f"{OUTPUT_DIR}/resultats_cnaps.json")
         save_grouped_json(results, f"{OUTPUT_DIR}/resultats_groupes.json")
+
 else:
     import uvicorn
     if __name__ == "__main__":

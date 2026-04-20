@@ -1,0 +1,151 @@
+{
+  "cnaps_urls": [
+    {
+      "url": "https://www.cnaps.mg/fr/cnaps/mot-du-directeur-general",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__publication",
+        "Paragraphestandard",
+        "wrap-article"
+      ],
+      "commentaire": "Il existe dans ce lien des liens dynamique qui contient des fichier EXCEL, PNG, PDF"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/actualites",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Liens de tous les actualités de la CNAPS. Il existe des liens dynamique pour chaque contenu d'actualité. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/cnaps/historique",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/cnaps/missions-et-engagements",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Il existe dans ces class des liens dynamique qui sont 404 not found, du coup ne scrappe pas ces liens"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/contacter/",
+      "classes": [
+        "contact-group__title",
+        "contact-group__about",
+        "content-article__texte"
+      ],
+      "commentaire": "Dans ce liens se trouve tous les contacts disponibles de la cnaps dans tous Madagascar, il ya un peu de CSS dans ce liens, afin de voir tous les contacts de la cnaps il va falloir changer l'etat de du section overflow: hidden; transition-property: height; height: 0px; transition-duration: 250ms; dans la class container par juste section style"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/statistiques",
+      "classes": [],
+      "commentaire": "- Ce liens contient des fichiers excel et des fichier RAR telechargeable et dans chaque feuilles des fichiers excels contient des tableau. \n- Il ya des statistiques qui ont ete compresse dans un fichier RAR, et dans les fichier rar contient des tableau statistiques versions PDF"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/cnaps/relations-internationales",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/prestations-familiales",
+      "classes": [
+        "liste-result",
+        "liste-result__item grid-result__item"
+      ],
+      "commentaire": "Dans cette liste-result__item grid-result__item contient de liens, et tu vas voir le contenu de liens, et dans ce liens contiens des titres dans la classe title-slide__item, la date de publication dans content-article__date et les textes dans la classe content-article__texte"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/actualite/remboursement-des-frais-d-accouchement",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Dans ce liens nous avons un fichier telechargeable et voici le liens du fichier telecheargeables: https://www.cnaps.mg/uploads/formulaires/drfm-CNaPS_600fce1e8c4265.01969731.docx, ce fichier est propose a l'utilisateur si il ou elle souhait realise un remboursement des frais d'accouchement"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/accidents-de-travail-et-maladies-professionnelles",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/prestations-de-retraite",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/hygiene-sante-et-actions-sociales",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/historique-SME",
+      "classes": [
+        "title-slide__item",
+        "table table-bordered border-primary",
+        "table table-light"
+      ],
+      "commentaire": "Ce lien contient l'HISTORIQUE DU SALAIRE MINIMUM D'EMBAUCHE (SME)"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/faq",
+      "classes": [
+        "faq-content__items"
+      ],
+      "commentaire": "Les contenu de ce liens se trouve dans les class qui contient ces noms de class"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/communique-de-presse",
+      "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte."
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/telechargement",
+      "classes": [
+        "container download__group"
+      ],
+      "commentaire": "recuperer tous les fichiers telechargeable avec leur liens, Creer un classificateur de documents si c'est formulaire, article"
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/document",
+      "classes": [],
+      "commentaire": null
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/magazine-cnaps",
+      "classes": [],
+      "commentaire": null
+    }
+  ]
+}

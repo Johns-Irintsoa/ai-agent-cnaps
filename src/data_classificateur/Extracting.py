@@ -31,22 +31,52 @@ def extract_txt(raw: bytes) -> str:
         except UnicodeDecodeError: continue
     return ""
  
+def extract_image(raw: bytes, ftype: str = "png") -> str:
+    """
+    Extrait le texte d'une image via OCR (unstructured + tesseract).
+    Ecrit les bytes dans un fichier temporaire car partition_image() requiert un chemin disque.
+    Retourne une chaine vide si l'OCR echoue ou si l'image ne contient pas de texte.
+    """
+    tmp_img = None
+    try:
+        suffix = f".{ftype}"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(raw)
+            tmp_img = tmp.name
+        from unstructured.partition.image import partition_image
+        elements = partition_image(filename=tmp_img, languages=["fra", "eng"])
+        text = " ".join(e.text for e in elements if hasattr(e, "text") and e.text).strip()
+        log.debug(f"  OCR image : {len(text)} caracteres extraits")
+        return text
+    except Exception as e:
+        log.debug(f"Image OCR error: {e}")
+        return ""
+    finally:
+        if tmp_img and os.path.exists(tmp_img):
+            os.unlink(tmp_img)
+
 def extract_bytes(raw: bytes, ftype: str) -> str:
-    if ftype == "pdf":              return extract_pdf(raw)
-    if ftype in ("docx", "doc"):   return extract_docx(raw)
-    if ftype == "txt":             return extract_txt(raw)
+    if ftype == "pdf":                          return extract_pdf(raw)
+    if ftype in ("docx", "doc"):               return extract_docx(raw)
+    if ftype == "txt":                          return extract_txt(raw)
+    if ftype in ("png", "jpg", "jpeg", "gif"): return extract_image(raw, ftype)
     return ""  # XLS, inconnu : classification par libellé uniquement
+
+ARCHIVE_EXTRACTABLE = {".pdf", ".docx", ".doc", ".txt", ".png", ".jpg", ".jpeg"}
 
 def _process_archive_members(members_iter, read_fn, type_name: str) -> list[tuple[str, str]]:
     results = []
     for m in members_iter:
         name_l = m.filename.lower()
-        if not (name_l.endswith(".pdf") or name_l.endswith(".docx")):
+        ext = os.path.splitext(name_l)[1]
+        if ext not in ARCHIVE_EXTRACTABLE:
             continue
         if m.file_size > CONFIG.archive_member_max:
             log.warning(f"  {type_name} : {m.filename} ignoré (trop grand)")
             continue
-        ftype = "pdf" if name_l.endswith(".pdf") else "docx"
+        ftype = ext.lstrip(".")
+        if ftype == "doc":
+            ftype = "docx"
         text = extract_bytes(read_fn(m.filename), ftype)
         if text.strip():
             results.append((m.filename, text))
@@ -82,13 +112,16 @@ def extract_rar(raw: bytes) -> list[tuple[str, str]]:
         results = []
         for fname in sorted(os.listdir(tmp_dir)):
             fname_l = fname.lower()
-            if not (fname_l.endswith(".pdf") or fname_l.endswith(".docx")):
+            ext = os.path.splitext(fname_l)[1]
+            if ext not in ARCHIVE_EXTRACTABLE:
                 continue
             fpath = os.path.join(tmp_dir, fname)
             if os.path.getsize(fpath) > CONFIG.archive_member_max:
                 log.warning(f"  RAR : {fname} ignoré (trop grand)")
                 continue
-            ftype = "pdf" if fname_l.endswith(".pdf") else "docx"
+            ftype = ext.lstrip(".")
+            if ftype == "doc":
+                ftype = "docx"
             with open(fpath, "rb") as f:
                 text = extract_bytes(f.read(), ftype)
             if text.strip():

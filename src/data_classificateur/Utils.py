@@ -8,4 +8,8 @@ def detect_type(url: str, ct: str) -> str:
     if u.endswith(".zip") or "zip" in c:               return "zip"
     if u.endswith(".rar") or "rar" in c:               return "rar"
     if u.endswith(".txt") or "text/plain" in c:        return "txt"
+    if u.endswith(".png") or "image/png" in c:         return "png"
+    if u.endswith(".jpg") or u.endswith(".jpeg") or "image/jpeg" in c: return "jpg"
+    if u.endswith(".gif") or "image/gif" in c:         return "gif"
+    if u.endswith(".webp") or "image/webp" in c:       return "webp"
     return "inconnu"

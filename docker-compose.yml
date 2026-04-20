@@ -14,8 +14,6 @@ services:
       - |
         ollama serve &
         until ollama list > /dev/null 2>&1; do sleep 1; done
-        echo "Pulling $$EMBEDDINGS_MODEL..."
-        ollama pull $$EMBEDDINGS_MODEL
         echo "Pulling $$OLLAMA_MODEL..."
         ollama pull $$OLLAMA_MODEL
         echo "All models ready."
