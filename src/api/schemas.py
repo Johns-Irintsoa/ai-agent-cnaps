@@ -28,3 +28,9 @@ class AskResponse(BaseModel):
 class WebIngestionResponse(BaseModel):
     status: str
     message: str
+
+
+class WebLoadResponse(BaseModel):
+    status: str
+    message: str
+    documents_loaded: int

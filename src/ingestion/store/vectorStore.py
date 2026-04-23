@@ -14,7 +14,7 @@ from typing import Any, Optional
 import numpy as np
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 log = logging.getLogger(__name__)
 
@@ -30,8 +30,7 @@ _DEFAULT_COLLECTION  = "cnaps_web_data"
 # Configuration embedding (partagée avec embedding.py)
 # ---------------------------------------------------------------------------
 
-_EMBEDDINGS_MODEL  = os.getenv("EMBEDDINGS_MODEL", "BAAI/bge-m3")
-_CACHE_FOLDER      = os.getenv("SENTENCE_TRANSFORMERS_HOME", None)
+_EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL", "huggingface.co/gpustack/bge-m3-gguf")
 
 
 class VectorStore:
@@ -50,7 +49,7 @@ class VectorStore:
         self.collection_name   = collection_name
         self.persist_directory = Path(persist_directory) if persist_directory else _DEFAULT_PERSIST_DIR
         self.store: Chroma     = None
-        self._embedding_fn: HuggingFaceEmbeddings = None
+        self._embedding_fn: OpenAIEmbeddings = None
         self._initialize_store()
 
     # ---------------------------------------------------------------------------
@@ -69,11 +68,11 @@ class VectorStore:
         self.persist_directory.mkdir(parents=True, exist_ok=True)
 
         log.info(f"Chargement du modèle d'embedding : {_EMBEDDINGS_MODEL}")
-        self._embedding_fn = HuggingFaceEmbeddings(
-            model_name=_EMBEDDINGS_MODEL,
-            cache_folder=_CACHE_FOLDER,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
+        self._embedding_fn = OpenAIEmbeddings(
+            base_url=os.environ["LLM_BASE_URL"],
+            model=_EMBEDDINGS_MODEL,
+            api_key=os.environ.get("LLM_API_KEY", "no-key"),
+            check_embedding_ctx_length=False,
         )
 
         self.store = Chroma(

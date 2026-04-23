@@ -4,8 +4,8 @@ import logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from config import CONFIG
-from data_classificateur.DataModel import FileEntry
+from data_classificateur.config import CONFIG
+from ingestion.scrap.DataClasses import FileEntry
 log = logging.getLogger(__name__)
 BASE_URL = "https://www.cnaps.mg"
 HEADERS  = {"User-Agent": "Mozilla/5.0 (compatible; CNaPS-Bot/1.0)"}
@@ -14,7 +14,7 @@ HEADERS  = {"User-Agent": "Mozilla/5.0 (compatible; CNaPS-Bot/1.0)"}
 def ext_from_url(url: str) -> str:
     path = url.lower().split("?")[0]
     for ext in (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".zip", ".rar", ".txt",
-                ".png", ".jpg", ".jpeg", ".gif"):
+                ".png", ".jpg", ".jpeg"):
         if path.endswith(ext):
             return ext
     return ""

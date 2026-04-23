@@ -14,11 +14,14 @@ et l'indexation dans la vector database.
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from urllib.parse import urljoin
 
+if TYPE_CHECKING:
+    from ingestion.DataClasses import UrlCnapsWeb
+
 import httpx
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 
 from langchain_core.documents import Document
 from langchain_community.document_loaders import (
@@ -252,6 +255,51 @@ def _extract_text_from_classes(
             log.debug(f"  Classe '{class_name}' : {useful_count} element(s) utile(s) extrait(s)")
 
     return "\n\n".join(collected)
+
+
+def load_html_from_url(
+    url_obj: "UrlCnapsWeb",
+    continue_on_error: bool = True,
+) -> list[Document]:
+    """
+    Charge une page HTML depuis un objet UrlCnapsWeb via WebBaseLoader.
+
+    Si attrClasses est non vide, un SoupStrainer filtre le HTML pour n'extraire
+    que les elements portant les classes indiquees (les classes multi-tokens comme
+    "foo bar" sont eclates en tokens individuels traites en OR).
+
+    Args:
+        url_obj:           Objet UrlCnapsWeb (url + attrClasses).
+        continue_on_error: Si True (defaut), retourne [] en cas d'erreur.
+
+    Returns:
+        Liste de Document LangChain avec metadonnees (source, url, classes_used).
+    """
+    from ingestion.DataClasses import UrlCnapsWeb  # noqa: F401 (import local pour eviter circularite)
+
+    try:
+        if url_obj.attrClasses:
+            all_tokens: list[str] = []
+            for cls in url_obj.attrClasses:
+                all_tokens.extend(cls.split())
+            bs_kwargs = {"parse_only": SoupStrainer(class_=all_tokens)}
+            loader = WebBaseLoader(web_paths=[url_obj.url], bs_kwargs=bs_kwargs)
+        else:
+            loader = WebBaseLoader(web_paths=[url_obj.url])
+
+        docs = loader.load()
+        for doc in docs:
+            doc.metadata.setdefault("source", url_obj.url)
+            doc.metadata["url"] = url_obj.url
+            doc.metadata["classes_used"] = url_obj.attrClasses
+        log.info(f"  {url_obj.url} → {len(docs)} document(s)")
+        return docs
+
+    except Exception as e:
+        log.warning(f"  Erreur chargement URL {url_obj.url} : {e}")
+        if not continue_on_error:
+            raise
+        return []
 
 
 def load_html_from_urls(

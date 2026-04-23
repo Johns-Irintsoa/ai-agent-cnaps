@@ -1,12 +1,9 @@
 langchain
 langchain-openai
-langchain-ollama
 langchain-core
 langchain-text-splitters
 langchain-community
-langchain-huggingface
 langchain-chroma
-sentence-transformers
 chromadb
 fastapi
 uvicorn[standard]

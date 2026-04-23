@@ -1,16 +1,10 @@
 from fastapi import FastAPI, HTTPException
-from llm import OllamaLLM
-from api.schemas import ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse
-from vector_database.scrap.scrapper import (
-    load_page,
-    split_text,
-    index_docs,
-    answer_question,
-)
+from llm import LLMClient
+from api.schemas import ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse, WebLoadResponse
 
 app = FastAPI(title="AI Agent CNAPS")
 
-_llm = OllamaLLM()
+_llm = LLMClient()
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -41,7 +35,7 @@ def scraper_ask(request: AskRequest) -> AskResponse:
 
 @app.post("/ingestion/scrap", response_model=WebIngestionResponse)
 def scrap_web() -> WebIngestionResponse:
-    from ingestion.process import from_web
+    from ingestion.scrap.Service import from_web
     result = from_web()
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result["message"])
@@ -49,8 +43,31 @@ def scrap_web() -> WebIngestionResponse:
 
 @app.post("/ingestion", response_model=WebIngestionResponse)
 def ingestion_pipeline() -> WebIngestionResponse:
-    from ingestion.process import from_web
+    from ingestion.scrap.Service import from_web
     result = from_web()
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result["message"])
     return WebIngestionResponse(status=result["status"], message=result["message"])
+
+
+@app.post("/ingestion/scrap/v1", response_model=WebIngestionResponse)
+def scrap_web_data() -> WebIngestionResponse:
+    from ingestion.scrap.Service import scrap_from_web
+    result = scrap_from_web()
+    if result["status"] == "error":
+        raise HTTPException(status_code=500, detail=result["message"])
+    return WebIngestionResponse(status=result["status"], message=result["message"])
+
+
+@app.post("/ingestion/load/web-data", response_model=WebLoadResponse)
+def ingestion_load_web_data() -> WebLoadResponse:
+    from src.ingestion.load.Service import load_web_data
+    try:
+        docs = load_web_data()
+        return WebLoadResponse(
+            status="success",
+            message=f"{len(docs)} document(s) charges depuis cnaps_urls.json",
+            documents_loaded=len(docs),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

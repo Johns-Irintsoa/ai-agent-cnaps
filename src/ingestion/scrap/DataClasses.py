@@ -8,8 +8,7 @@ class FileEntry:
     file_label: str      # Libellé du fichier
     file_url: str        # URL de téléchargement absolue
     file_type: str = ""  # pdf / docx / rar / zip / xls / ...
- 
- 
+
 @dataclass
 class ClassificationResult:
     page_url: str

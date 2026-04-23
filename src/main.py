@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 
 if os.environ.get("RUN_SCRAPPER"):
-    from ingestion.scrapper import run_scrapper
+    from ingestion.scrap.scrapper import run_scrapper
     run_scrapper()
 
 elif os.environ.get("RUN_CLASSIFICATION"):

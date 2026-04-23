@@ -5,7 +5,10 @@ Utils — Utilitaires d'ingestion de donnees CNaPS.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ingestion.DataClasses import UrlCnapsWeb
 
 log = logging.getLogger(__name__)
 
@@ -197,3 +200,35 @@ def _to_row_list(data: Any, source: str = "") -> list:
 
     # Scalaire ou autre → une seule ligne
     return [data]
+
+
+# ---------------------------------------------------------------------------
+# Conversion cnaps_urls.json → liste de UrlCnapsWeb
+# ---------------------------------------------------------------------------
+
+def convert_json_to_list(json_path: str) -> "list[UrlCnapsWeb]":
+    """
+    Lit le fichier cnaps_urls.json et retourne la liste des entrees sous forme
+    d'objets UrlCnapsWeb.
+
+    Args:
+        json_path: Chemin vers le fichier JSON (ex: "cnaps_urls.json").
+
+    Returns:
+        list[UrlCnapsWeb] — Un objet par entree dans le tableau "cnaps_urls".
+
+    Raises:
+        FileNotFoundError: Si json_path n'existe pas.
+    """
+    from ingestion.DataClasses import UrlCnapsWeb
+
+    path = Path(json_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Fichier JSON introuvable : {json_path}")
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    entries = data.get("cnaps_urls", [])
+    log.info(f"convert_json_to_list : {len(entries)} URL(s) trouvees dans {path.name}")
+    return [UrlCnapsWeb(url=e["url"], attrClasses=e.get("classes", [])) for e in entries]

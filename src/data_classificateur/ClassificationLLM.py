@@ -1,66 +1,217 @@
 import json
+import re
 import time
 import logging
 from dataclasses import asdict
-from collections import Counter
 
 import httpx
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-from config import CONFIG
-from data_classificateur.DataModel import FileEntry, ClassificationResult
-from data_classificateur.Extracting import download_file, extract_zip, extract_rar, extract_bytes
-from data_classificateur.Scrapping import scrape_all_pages
+from data_classificateur.config import CONFIG
+from ingestion.scrap.DataClasses import FileEntry, ClassificationResult
+from ingestion.scrap.Utils import download_file, extract_zip, extract_rar, extract_bytes
 
 log = logging.getLogger(__name__)
 
 
-def build_llm() -> ChatOllama:
-    return ChatOllama(
-        model=CONFIG.ollama_model,
-        base_url=CONFIG.ollama_base_url,
+def build_llm() -> ChatOpenAI:
+    if not CONFIG.llm_base_url:
+        raise ValueError("LLM_BASE_URL non défini dans l'environnement")
+    if not CONFIG.llm_model:
+        raise ValueError("LLM_MODEL non défini dans l'environnement")
+    return ChatOpenAI(
+        model=CONFIG.llm_model,
+        base_url=CONFIG.llm_base_url,
+        api_key=CONFIG.llm_api_key,
         temperature=0,
-        format="json",
-        num_predict=150,
-        num_ctx=2048,
+        max_tokens=150,
+        model_kwargs={"response_format": {"type": "json_object"}},
     )
  
 def build_prompt(label: str, group: str, text: str) -> str:
-    cats = "\n".join(f"- {c}" for c in CONFIG.categories)
+    noms = " | ".join(CONFIG.categories)
     body = text.strip()[:CONFIG.max_text_chars] if text.strip() else "(texte non extractible)"
-    return f"""Tu es un classificateur de documents administratifs CNaPS Madagascar.
- 
+    return f"""Tu es un classificateur universel de documents. Ton role est
+d'analyser le contenu d'un document, quelle que soit sa langue,
+son domaine, son format ou son origine, et de le classer dans
+l'une des 4 categories suivantes :
+FORMULAIRE, TABLEAU, TEXTE ou AUTRE.
+
+## DEFINITIONS FONCTIONNELLES
+
+FORMULAIRE : document de recolte d'information.
+  Structure a zones d'attente destinees a completion
+  par une tierce personne. Peut etre statique (zones vides)
+  ou actif (calculs declenches par la saisie).
+
+TABLEAU : document de transmission de donnees structurees
+  et figees. Organisation matricielle ligne x colonne
+  avec en-tetes explicites. Donnees completes, mesurables,
+  accompagnees d'agregations ou de visualisations.
+
+TEXTE : document de transmission d'information narrative,
+  prescriptive ou argumentative, destine a etre lu de maniere
+  continue ou consulte. Contenu complet, structure par la
+  langue. Produit par un auteur ou une institution identifiable.
+  Intention : communiquer, informer, instruire, raconter,
+  guider ou convaincre un lecteur.
+
+AUTRE : document ne relevant d'aucune des trois categories
+  precedentes. Contenu inclassable ou mixte ne presentant
+  pas suffisamment de signaux pour une categorie definie.
+
+─────────────────────────────────────────────────────────────
+## GRILLE D'ANALYSE — CRITERES PAR CATEGORIE
+─────────────────────────────────────────────────────────────
+
+### [FORMULAIRE] — Signaux structurels
+
+NIVEAU 1 — Directs (3 pts chacun)
+[C1.1] ZONES D'ATTENTE VIDES
+  Espaces de saisie future : lignes vides repetees,
+  sequences de points post-label, cases delimitees,
+  blancs post-":", cellules vides en tableau,
+  colonnes structurees sans donnees.
+
+[C1.2] INSTRUCTION AU REMPLISSEUR
+  Adressage direct au completeur : injonction de
+  remplissage, consigne de format (majuscules, encre
+  noire, format date), instruction d'impression ou
+  d'envoi post-completion, avertissement de rejet
+  en cas de non-conformite.
+
+[C1.3] CHOIX MUTUELLEMENT EXCLUSIFS
+  Options a selection unique : cases a cocher ou
+  a croix, options a rayer, boutons radio imprimes,
+  listes deroulantes PDF ou tableur interactif.
+
+[C1.4] LOGIQUE DE CALCUL CONDITIONNEE A LA SAISIE
+  Formules, cellules calculees ou totaux automatiques
+  dont le resultat depend de donnees a saisir.
+  Signal fort : structure multi-feuilles ou une feuille
+  agrege les resultats des autres.
+
+NIVEAU 2 — Forts (2 pts chacun)
+[C2.1] EMPLACEMENTS DE VALIDATION MULTIPLES
+  Zones de signature, paraphe ou cachet pour parties
+  distinctes — circulation multi-intervenants
+  a validations successives.
+
+[C2.2] IDENTIFIANT DE MODELE NORMALISE
+  Code ou reference d'identification du gabarit
+  lui-meme (non du contenu) : numero de formulaire,
+  code de version, reference reglementaire du modele.
+
+[C2.3] SECTION RESERVEE A TIERS NON-REMPLISSEUR
+  Delimitation explicite d'une zone inaccessible
+  au deposant : reservation a administration,
+  autorite de controle ou toute entite tierce.
+
+[C2.4] CHAMPS D'IDENTIFIANTS EN CASES UNITAIRES
+  Saisie caractere par caractere d'identifiants
+  en cases individuelles de taille fixe — contrainte
+  de format garantie par la structure.
+
+[C2.5] REGLES DE VALIDATION STRUCTURELLE INTEGREES
+  Contraintes documentees dans le gabarit : unicite
+  d'entree par entite, interdiction de modifier la
+  structure, format impose par champ, marquage
+  visuel des champs obligatoires.
+
+NIVEAU 3 — Contextuels (1 pt chacun)
+[C3.1] TITRE ORIENTE ACTION OU REQUETE
+[C3.2] STRUCTURE SYMETRIQUE MULTILINGUE
+[C3.3] NOTICE D'AIDE AU REMPLISSAGE
+[C3.4] ENGAGEMENT FORMEL DU SIGNATAIRE
+[C3.5] MULTIPLICITE DES PARTIES IMPLIQUEES
+
+─────────────────────────────────────────────────────────────
+
+### [TABLEAU] — Signaux structurels
+
+NIVEAU 1 — Directs (3 pts chacun)
+[T1.1] COMPLETUDE TOTALE DES CELLULES
+[T1.2] STRUCTURE LIGNE x COLONNE A EN-TETES EXPLICITES
+[T1.3] AGREGATION VERIFIABLE
+[T1.4] ATTRIBUTION A UN EMETTEUR DATE
+
+NIVEAU 2 — Forts (2 pts chacun)
+[T2.1] VISUALISATIONS DERIVEES DES DONNEES
+[T2.2] COLONNES DE CALCUL DERIVE FIGEES
+[T2.3] STRUCTURE MULTI-SECTIONS THEMATIQUES COMPLETES
+
+NIVEAU 3 — Contextuels (1 pt chacun)
+[T3.1] TITRE DESCRIPTIF DE CONTENU
+[T3.2] ABSENCE D'INSTRUCTION AU LECTEUR
+[T3.3] ABSENCE D'ENGAGEMENT FORMEL
+[T3.4] COMPARAISON TEMPORELLE EXPLICITE
+[T3.5] CROISEMENT DE DEUX AXES CATEGORIELS
+
+─────────────────────────────────────────────────────────────
+
+### [TEXTE] — Signaux structurels
+
+NIVEAU 1 — Directs (3 pts chacun)
+[X1.1] CONTENU NARRATIF OU DISCURSIF CONTINU
+[X1.2] STRUCTURE EDITORIALE OU DOCUMENTAIRE
+[X1.3] AUTEUR OU EMETTEUR IDENTIFIE
+
+NIVEAU 2 — Forts (2 pts chacun)
+[X2.1] DESTINATION LECTURE OU CONSULTATION
+[X2.2] CONTENU PRESCRIPTIF SEQUENTIEL
+[X2.3] CONTENU ARGUMENTATIF OU INTERPRETATIF
+[X2.4] CONTENU REFERENTIEL CONSULTATIF
+
+NIVEAU 3 — Contextuels (1 pt chacun)
+[X3.1] TITRE INFORMATIF OU PRESCRIPTIF
+[X3.2] PRESENCE DE VISUELS ILLUSTRATIFS
+[X3.3] PERIODICITE OU VERSIONNAGE
+[X3.4] MULTILINGUISME EDITORIAL
+[X3.5] ADRESSE DIRECTE AU LECTEUR
+
+─────────────────────────────────────────────────────────────
+## ARBRE DE DECISION
+─────────────────────────────────────────────────────────────
+
+ETAPE A — TEST FORMULAIRE : score C1-C3 >= 4 -> FORMULAIRE
+ETAPE B — TEST TABLEAU    : score T1-T3 >= 4 -> TABLEAU
+ETAPE C — TEST TEXTE      : score X1-X3 >= 4 -> TEXTE
+ETAPE D — FALLBACK        : aucun test concluant -> AUTRE
+
+─────────────────────────────────────────────────────────────
+## DOCUMENT A ANALYSER
+─────────────────────────────────────────────────────────────
+
 Contexte :
 - Groupe de la page : "{group}"
-- Libellé du fichier : "{label}"
- 
-Catégories disponibles :
-{cats}
- 
+- Libelle du fichier : "{label}"
+
 Extrait du document :
 \"\"\"
 {body}
 \"\"\"
- 
-Réponds UNIQUEMENT en JSON valide :
+
+Reponds UNIQUEMENT en JSON valide :
 {{
-  "categorie": "<une catégorie parmi la liste>",
-  "confiance": <0.0 à 1.0>,
+  "categorie": "<{noms}>",
+  "confiance": <0.0 a 1.0>,
   "raison": "<explication courte en 1 phrase>"
 }}"""
  
-def classify(llm: ChatOllama, label: str, group: str, text: str) -> dict:
+def classify(llm: ChatOpenAI, label: str, group: str, text: str) -> dict:
     raw = llm.invoke([HumanMessage(content=build_prompt(label, group, text))]).content.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"): raw = raw[4:]
-    return json.loads(raw.strip())
+    match = re.search(r'\{.*?"categorie".*?\}', raw, re.DOTALL)
+    if match:
+        return json.loads(match.group())
+    if "```" in raw:
+        for part in raw.split("```"):
+            part = part.lstrip("json").strip()
+            if part.startswith("{"):
+                return json.loads(part)
+    return json.loads(raw)
  
- 
-# ─────────────────────── Pipeline principal ──────────────────────
- 
-def process_entry(entry: FileEntry, llm: ChatOllama) -> list[ClassificationResult]:
+def process_entry(entry: FileEntry, llm: ChatOpenAI) -> list[ClassificationResult]:
     source_name = entry.file_url.split("/")[-1].split("?")[0]
  
     def err(msg: str, ftype: str = "") -> list[ClassificationResult]:
@@ -132,71 +283,3 @@ def process_entry(entry: FileEntry, llm: ChatOllama) -> list[ClassificationResul
         return err(f"LLM JSON error: {e}", ftype)
     except Exception as e:
         return err(str(e), ftype)
- 
- 
-def run() -> list[ClassificationResult]:
-    entries = scrape_all_pages()
-    if not entries:
-        log.error("Aucun fichier trouvé.")
-        return []
- 
-    llm = build_llm()
-    all_results: list[ClassificationResult] = []
- 
-    for i, entry in enumerate(entries, 1):
-        log.info(
-            f"\n[{i}/{len(entries)}] [{entry.group_title}] "
-            f"{entry.file_label[:55]}... ({entry.file_type})"
-        )
-        all_results.extend(process_entry(entry, llm))
-        if i < len(entries):
-            time.sleep(CONFIG.request_delay)
- 
-    return all_results
- 
- 
-# ─────────────────────────── Sortie ──────────────────────────────
- 
-def save_json(results: list[ClassificationResult], path: str = "resultats_cnaps.json"):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump([asdict(r) for r in results], f, ensure_ascii=False, indent=2)
-    log.info(f"JSON plat → {path}")
- 
- 
-def save_grouped_json(results: list[ClassificationResult], path: str = "resultats_groupes.json"):
-    """Format structuré page → groupe → fichiers (idéal pour ingestion RAG / Lucy)."""
-    grouped: dict = {}
-    for r in results:
-        grp = grouped.setdefault(r.page_url, {}).setdefault(r.group_title, [])
-        grp.append({
-            "fichier": r.source_name, "label": r.file_label,
-            "url": r.file_url, "type": r.file_type,
-            "categorie": r.categorie, "confiance": r.confiance,
-            "raison": r.raison, "erreur": r.erreur,
-        })
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(grouped, f, ensure_ascii=False, indent=2)
-    log.info(f"JSON groupé → {path}")
- 
- 
-def print_summary(results: list[ClassificationResult]):
-    erreurs = [r for r in results if r.erreur]
-    print(f"\n{'='*65}")
-    print(f"  RÉSUMÉ CNaPS — {len(results)} document(s) traité(s)")
-    print(f"{'='*65}")
-    print("\n  Par catégorie :")
-    for cat, n in Counter(r.categorie for r in results).most_common():
-        print(f"    {cat:<15} {'█'*n} ({n})")
-    print("\n  Par type de fichier :")
-    for ft, n in Counter(r.file_type for r in results).most_common():
-        print(f"    {ft:<10} {n}")
-    print("\n  Par page source :")
-    for pg, n in Counter(r.page_url for r in results).most_common():
-        print(f"    {pg.split('/')[-1]:<25} {n} fichier(s)")
-    if erreurs:
-        print(f"\n  ⚠  Erreurs : {len(erreurs)}")
-        for r in erreurs[:5]:
-            print(f"    - {r.source_name[:50]} : {r.erreur}")
-        if len(erreurs) > 5:
-            print(f"    ... et {len(erreurs)-5} autre(s)")
-    print(f"{'='*65}\n")
