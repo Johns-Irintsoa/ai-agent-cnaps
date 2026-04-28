@@ -1,7 +1,14 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(__file__))
+# On ajoute 'src' au PATH pour que tous les imports fonctionnent
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_path = os.path.join(current_dir, "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+# On initialise le cache AVANT toute autre action
+import config_env
 
 from dotenv import load_dotenv
 load_dotenv()

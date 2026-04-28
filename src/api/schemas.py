@@ -34,3 +34,21 @@ class WebLoadResponse(BaseModel):
     status: str
     message: str
     documents_loaded: int
+
+
+class DocumentContent(BaseModel):
+    page_content: str
+    metadata: dict
+
+
+class FileLoadTestResponse(BaseModel):
+    status: str
+    documents_loaded: int
+    documents: list[DocumentContent]
+
+
+class IngestionRequest(BaseModel):
+    directory_path: str
+
+class PDFLoadRequest(BaseModel):
+    pdf_path: str

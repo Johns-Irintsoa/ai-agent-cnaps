@@ -7,6 +7,10 @@ import logging
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING
 
+import os
+from pathlib import Path
+from typing import List
+
 if TYPE_CHECKING:
     from ingestion.DataClasses import UrlCnapsWeb
 

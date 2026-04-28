@@ -1,6 +1,11 @@
 services:
   app:
     container_name: ai-agent-cnaps
+    environment:
+      # --- Configuration du Cache (Fix Permission Denied) ---
+      - XDG_CACHE_HOME=/tmp/.cache
+      - HF_HOME=/tmp/.cache
+      - RAPIDOCR_CACHE=/tmp/.cache/rapidocr_models
     build:
       context: .
       dockerfile: Dockerfile

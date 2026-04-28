@@ -31,9 +31,10 @@ from langchain_community.document_loaders import (
     TextLoader,
     UnstructuredExcelLoader,
     UnstructuredImageLoader,
-    UnstructuredFileLoader,
     WebBaseLoader,
 )
+
+from langchain_unstructured import UnstructuredLoader
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +57,9 @@ _LOADER_MAP: dict[str, type] = {
     ".webp": UnstructuredImageLoader,
 }
 
+# Pour les autres formats, utilise le nouveau UnstructuredLoader
+DEFAULT_LOADER = UnstructuredLoader
+
 # Extensions supportees (pour le filtrage rapide)
 SUPPORTED_EXTENSIONS = set(_LOADER_MAP.keys())
 
@@ -64,10 +68,39 @@ SUPPORTED_EXTENSIONS = set(_LOADER_MAP.keys())
 # Utilitaire interne
 # ---------------------------------------------------------------------------
 
+def pdf_image_text(file_path: str) -> list[Document]:
+    """
+    Extrait le texte d'un PDF via OCR en utilisant UnstructuredPDFLoader (strategy hi_res).
+    Utilise tesseract-ocr et poppler disponibles dans le container via unstructured[image].
+
+    Args:
+        file_path: Chemin vers le fichier PDF.
+
+    Returns:
+        Liste de Document avec le texte OCR. Retourne [] en cas d'erreur.
+    """
+    try:
+
+        # loader = UnstructuredLoader(file_path, strategy="ocr_only", languages=["fra", "eng"])
+        loader = UnstructuredLoader(file_path, strategy="fast", languages=["fra"])
+        docs = loader.load()
+
+        for doc in docs:
+            doc.metadata.setdefault("source", file_path)
+            doc.metadata["ocr"] = True
+
+        log.debug(f"  OCR : {Path(file_path).name} → {len(docs)} element(s) extraits")
+        return docs
+
+    except Exception as e:
+        log.warning(f"  Erreur OCR {file_path} : {e}")
+        return []
+
+
 def _load_file(file_path: str) -> list[Document]:
     """
     Charge un fichier unique en utilisant le loader LangChain adapte a son extension.
-    Utilise UnstructuredFileLoader comme fallback pour les types non reconnus.
+    Utilise UnstructuredLoader comme fallback pour les types non reconnus.
 
     Args:
         file_path: Chemin absolu ou relatif vers le fichier.
@@ -76,7 +109,7 @@ def _load_file(file_path: str) -> list[Document]:
         Liste de Document. Retourne [] en cas d'erreur.
     """
     ext = Path(file_path).suffix.lower()
-    loader_cls = _LOADER_MAP.get(ext, UnstructuredFileLoader)
+    loader_cls = _LOADER_MAP.get(ext, UnstructuredLoader)
 
     try:
         loader = loader_cls(file_path)
@@ -90,6 +123,38 @@ def _load_file(file_path: str) -> list[Document]:
         log.warning(f"  Erreur chargement {file_path} : {e}")
         return []
 
+
+def _load_PDF(file_path: str) -> list[Document]:
+    """
+    Charge un PDF en essayant d'abord le chargement natif, puis l'OCR si le texte est insuffisant.
+
+    Args:
+        file_path: Chemin vers le fichier PDF.
+
+    Returns:
+        Liste de Document. Retourne [] en cas d'erreur.
+    """
+    docs = _load_file(file_path)
+
+    total_text_length = sum(len(doc.page_content) for doc in docs)
+    if total_text_length < 100:  # Seuil arbitraire pour detecter les PDFs scannes
+        log.info(f"  Texte insuffisant ({total_text_length} caracteres), tentative OCR pour {file_path}")
+        return pdf_image_text(file_path)
+
+    return docs
+
+
+def _load_pdf_from_dirs(file_path: str) -> list[Document]:
+    """
+    Charge un PDF en essayant d'abord le chargement natif, puis l'OCR si le texte est insuffisant.
+
+    Args:
+        file_path: Chemin vers le fichier PDF.
+
+    Returns:
+        Liste de Document. Retourne [] en cas d'erreur.
+    """
+    return _load_PDF(file_path)
 
 # ---------------------------------------------------------------------------
 # Chargement depuis des dossiers
@@ -105,7 +170,7 @@ def load_documents_from_dirs(
 
     Formats supportes nativement :
       PDF, DOCX, DOC, CSV, TXT, XLS, XLSX, PNG, JPG, JPEG, GIF, WEBP.
-    Tout autre type de fichier est tente via UnstructuredFileLoader.
+    Tout autre type de fichier est tente via UnstructuredLoader.
 
     Args:
         directories: Liste de chemins de dossiers a parcourir.
