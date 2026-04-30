@@ -16,3 +16,8 @@ python-docx==1.1.2
 rarfile
 pydantic-settings
 docling
+pymupdf 
+pdf2image 
+pytesseract 
+opencv-python 
+numpy

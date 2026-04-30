@@ -64,8 +64,9 @@ def process_unstructured_data(directory_path: str):
 
             doc_info = {
                 "file": filename,
-                "category": decision.category,
-                "reason": decision.reason
+                "categorie": decision.categorie,
+                "confiance": decision.confiance,
+                "raison": decision.raison
             }
 
             if decision.is_useful:

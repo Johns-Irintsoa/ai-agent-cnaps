@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from typing import List
 
+
 if TYPE_CHECKING:
     from ingestion.DataClasses import UrlCnapsWeb
 
@@ -236,3 +237,5 @@ def convert_json_to_list(json_path: str) -> "list[UrlCnapsWeb]":
     entries = data.get("cnaps_urls", [])
     log.info(f"convert_json_to_list : {len(entries)} URL(s) trouvees dans {path.name}")
     return [UrlCnapsWeb(url=e["url"], attrClasses=e.get("classes", [])) for e in entries]
+
+

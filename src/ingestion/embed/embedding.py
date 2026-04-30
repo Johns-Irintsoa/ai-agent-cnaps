@@ -25,14 +25,4 @@ class EmbeddingManager:
         )
         print("Embedding model ready.")
 
-    def generate_embeddings(self, texts: List[str]) -> np.ndarray:
-        if not self.model:
-            raise ValueError("Model not loaded")
-        print(f"Generating embeddings for {len(texts)} texts...")
-        vectors = self.model.embed_documents(texts)
-        embeddings = np.array(vectors)
-        print(f"Generated embeddings with shape: {embeddings.shape}")
-        return embeddings
-
-
 embedding_manager = EmbeddingManager()
