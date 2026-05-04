@@ -2,7 +2,6 @@ import uuid
 import json
 from datetime import datetime
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
-from parsing import _pdf_docling
 from pathlib import Path
 
 def chuncking_md_data(md_text, filename="document_source", max_chunk_size=1000, chunk_overlap=100):

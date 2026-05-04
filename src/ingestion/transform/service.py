@@ -1,7 +1,7 @@
 import os
-from parsing import _pdf_docling
-from splitting import chuncking_md_data
-from embedding import embed_chunks
+from .parsing import _pdf_docling
+from .splitting import chuncking_md_data
+from .embedding import embed_chunks
 from pathlib import Path
 from dotenv import load_dotenv
 

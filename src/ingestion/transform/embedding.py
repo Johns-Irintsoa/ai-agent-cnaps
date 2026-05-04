@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings # Ou un modèle gratuit comme SentenceTransformers
+from ..embed.embedding import embedding_manager
+
 
 load_dotenv()  # Charge les variables d'environnement depuis le fichier .env
 
@@ -12,7 +14,8 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
     
     # 1. Configuration du modèle d'embedding
     # Note: Assurez-vous d'avoir votre clé API si vous utilisez OpenAI
-    embeddings = OpenAIEmbeddings(model=os.getenv("EMBEDDINGS_MODEL"))
+    # embeddings = OpenAIEmbeddings(model=os.getenv("EMBEDDINGS_MODEL"))
+    embeddingModel = embedding_manager.model
     
     # 2. Préparation des données pour ChromaDB
     # On sépare le texte, les métadonnées et les IDs
@@ -33,7 +36,7 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
     # 'persist_directory' permet de sauvegarder la base sur le disque local
     vector_db = Chroma.from_texts(
         texts=texts,
-        embedding=embeddings,
+        embedding=embeddingModel,
         metadatas=metadatas,
         ids=ids,
         collection_name=collection_name,
