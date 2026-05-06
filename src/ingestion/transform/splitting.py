@@ -1,88 +1,82 @@
-import uuid
-import json
-from datetime import datetime
-from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
-from pathlib import Path
+import os
+from typing import List, Dict, Any
 
-def chuncking_md_data(md_text, filename="document_source", max_chunk_size=1000, chunk_overlap=100):
+from .utils import (
+    extract_signature_blocks,
+    split_tables_from_text,
+    process_text_part,
+    build_chunk_item,
+    link_chunks,
+)
+
+from langchain_core.documents import Document
+
+def chuncking_md_data(
+    md_text: str,
+    filename: str = "document_source",
+    max_chunk_size: int = os.getenv("CHUNCKING_MAX_TOKENS"),
+    chunk_overlap: int = os.getenv("CHUNCKING_OVERLAP_TOKENS"),
+) -> List[Dict[str, Any]]:
     """
-    Découpe le markdown en chunks structurés (Hybride : Titres + Taille).
-    
+    Point d'entrée principal : découpe un document Markdown en chunks structurés.
+ 
+    Pipeline complet :
+      1. Extraction préalable des blocs de signature/tampon
+      2. Séparation tableaux / texte
+      3. Pour les tableaux  → chunk atomique (jamais découpé)
+      4. Pour le texte      → headers puis taille avec séparateurs légaux
+      5. Construction des items JSON avec toutes les métadonnées
+      6. Liaison prev/next entre chunks
+ 
     Args:
-        md_text (str): Le contenu markdown issu de docling.
-        filename (str): Nom du fichier source pour les métadonnées.
-        max_chunk_size (int): Taille maximum de caractères par chunk.
-        chunk_overlap (int): Chevauchement entre les chunks pour garder le contexte.
+        md_text:        Contenu Markdown issu de Docling.
+        filename:       Nom du fichier source (pour les métadonnées).
+        max_chunk_size: Taille maximum en caractères par chunk (défaut : 1000).
+        chunk_overlap:  Chevauchement en caractères entre chunks (défaut : 100).
+ 
+    Returns:
+        Liste de dicts JSON représentant les chunks enrichis.
     """
-    
-    # 1. Premier découpage : Basé sur la structure des titres (#, ##, ###)
-    headers_to_split_on = [
-        ("#", "Header 1"),
-        ("##", "Header 2"),
-        ("###", "Header 3"),
-    ]
-    markdown_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=headers_to_split_on, 
-        strip_headers=False
-    )
-    header_splits = markdown_splitter.split_text(md_text)
-
-    # 2. Deuxième découpage : Sécurité pour les sections trop longues
-    # On utilise RecursiveCharacter pour ne pas couper les phrases/mots brutalement
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=max_chunk_size,
-        chunk_overlap=chunk_overlap
-    )
-
-    final_json_list = []
-    
-    # 3. Traitement et enrichissement
-    for split in header_splits:
-        # On recoupe chaque section si elle dépasse max_chunk_size
-        sub_chunks = text_splitter.split_documents([split])
-        
-        for sub_chunk in sub_chunks:
-            chunk_id = str(uuid.uuid4())
-            
-            # Reconstruction de la hiérarchie (ex: Titre > Sous-titre)
-            hierarchy = " > ".join([val for key, val in sub_chunk.metadata.items() if "Header" in key])
-            
-            # Création de l'item selon votre structure
+ 
+    # ── Étape 1 : pré-extraction des signatures (fix tampon/date) ──────────
+    signature_blocks = extract_signature_blocks(md_text)
+ 
+    # ── Étape 2 : séparation tableaux / texte ──────────────────────────────
+    parts = split_tables_from_text(md_text)
+ 
+    final_json_list: List[Dict] = []
+ 
+    for part in parts:
+ 
+        if part["type"] == "table":
+            # ── Texte → pipeline headers + taille ──────────────────────────
+            docs_to_process = process_text_part(
+                part["content"], max_chunk_size, chunk_overlap
+            )
+            for d in docs_to_process:
+                d.metadata["is_table"] = True
+        else:
+            # Texte classique
+            docs_to_process = process_text_part(
+                part["content"], max_chunk_size, chunk_overlap
+            )
+ 
+        for doc in docs_to_process:
             current_index = len(final_json_list)
-            chunk_item = {
-                "chunk_id": chunk_id,
-                "content": sub_chunk.page_content,
-                "metadata": {
-                    "source": filename,
-                    "page_numbers": [], # Note: Nécessite l'objet JSON de Docling pour être exact
-                    "creation_date": datetime.now().isoformat(),
-                    "hierarchical_context": hierarchy or "Root",
-                    "chunk_index": current_index + 1,
-                    "previous_chunk_id": final_json_list[current_index - 1]["chunk_id"] if current_index > 0 else None,
-                    "next_chunk_id": None,
-                    "contains_table": "|" in sub_chunk.page_content
-                }
-            }
-
-            # Mise à jour du lien "next" du chunk précédent
+            item = build_chunk_item(
+                content=doc.page_content,
+                metadata_extra=doc.metadata,
+                current_index=current_index,
+                final_json_list=final_json_list,
+                filename=filename,
+                signature_blocks=signature_blocks,
+            )
+            # Lien "next" du chunk précédent
             if current_index > 0:
-                final_json_list[current_index - 1]["metadata"]["next_chunk_id"] = chunk_id
-                
-            final_json_list.append(chunk_item)
-
-    # Mise à jour du total_chunks pour tous les éléments
-    total_count = len(final_json_list)
-    for item in final_json_list:
-        item["metadata"]["total_chunks"] = total_count
-
-    return final_json_list
-
-
-# # Exemple d'usage :
-# _PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-# # print(_PROJECT_ROOT)
-# sample_file = _PROJECT_ROOT / "data/unstructured/pdf/265df2015-CNaPS_600fd1b4ca3383.50730780.pdf"
-# sample_md_text = _pdf_docling(sample_file)
-
-# text_result = chuncking_md_data(sample_md_text, filename="265df2015-CNaPS_600fd1b4ca3383.50730780.pdf")
-# print(text_result)
+                final_json_list[current_index - 1]["metadata"]["next_chunk_id"] = (
+                    item["chunk_id"]
+                )
+            final_json_list.append(item)
+ 
+    # ── Étape finale : liens next complets + total_chunks ──────────────────
+    return link_chunks(final_json_list)

@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings # Ou un modèle gratuit comme SentenceTransformers
-from ..embed.embedding import embedding_manager
+from ...models.embedding import embedding_manager
 
 
 load_dotenv()  # Charge les variables d'environnement depuis le fichier .env

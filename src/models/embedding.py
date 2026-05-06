@@ -23,6 +23,8 @@ class EmbeddingManager:
             api_key=os.environ.get("LLM_API_KEY", "no-key"),
             check_embedding_ctx_length=False,
         )
+        
         print("Embedding model ready.")
+        return self.model
 
 embedding_manager = EmbeddingManager()

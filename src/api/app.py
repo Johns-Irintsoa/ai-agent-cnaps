@@ -1,18 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from LLM.llm import LLMClient
+# from models.llm import LLMClient
 from api.schemas import ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse, WebLoadResponse, FileLoadTestResponse, DocumentContent, IngestionRequest, PDFLoadRequest
 from ingestion.filter.functions import process_unstructured_data
 
 app = FastAPI(title="AI Agent CNAPS")
 
-_llm = LLMClient()
+# _llm = LLMClient()
 
 
-@app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest) -> ChatResponse:
-    answer = _llm.invoke(request.message)
-    return ChatResponse(response=answer)
+# @app.post("/chat", response_model=ChatResponse)
+# def chat(request: ChatRequest) -> ChatResponse:
+#     answer = _llm.invoke(request.message)
+#     return ChatResponse(response=answer)
 
 
 @app.post("/scraper/index", response_model=IndexResponse)

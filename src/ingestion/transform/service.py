@@ -20,6 +20,7 @@ def transform_pdf(file_path):
     # 1. Extraction (Parsing) via Docling
     print(f"--- Étape 1 : Parsing de {filename} ---")
     markdown_content = _pdf_docling(file_path) 
+    # print(markdown_content,"\n\n")
     
     if not markdown_content:
         print("Erreur : Aucun contenu extrait.")
