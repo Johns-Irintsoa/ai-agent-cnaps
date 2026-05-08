@@ -32,6 +32,10 @@ RUN pip install --upgrade pip --quiet
 # ── Groupe 1 : Outils stables & Web ──────────
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --progress-bar off \
+        "weaviate-client==4.21.0" \
+        "grpcio>=1.78.0,<1.80.0" \
+        "grpcio-status<1.80.0" \
+        "grpcio-health-checking<1.80.0" \
         python-dotenv "httpx==0.27.2" rarfile \
         fastapi "uvicorn[standard]" pydantic-settings
 

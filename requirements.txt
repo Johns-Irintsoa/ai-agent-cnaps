@@ -22,3 +22,4 @@ pdf2image
 pytesseract 
 opencv-python 
 numpy
+weaviate-client>=4.5.0

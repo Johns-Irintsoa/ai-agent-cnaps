@@ -81,7 +81,7 @@ def is_signature_chunk(content: str, signature_blocks: List[str]) -> bool:
 # ---------------------------------------------------------------------------
 # 3. SÉPARATION TABLEAUX / TEXTE
 # ---------------------------------------------------------------------------
- 
+
 def split_tables_from_text(md_text: str) -> List[Dict[str, str]]:
     """
     Sépare les tableaux Markdown du texte courant.
@@ -120,12 +120,12 @@ def split_tables_from_text(md_text: str) -> List[Dict[str, str]]:
         parts.append({"type": "text", "content": remaining})
  
     return parts
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # 4. DÉCOUPAGE PAR HEADERS MARKDOWN
 # ---------------------------------------------------------------------------
- 
+
 def split_by_headers(text: str) -> List[Document]:
     """
     Découpe le texte selon la hiérarchie des titres Markdown (#, ##, ###).
@@ -144,12 +144,12 @@ def split_by_headers(text: str) -> List[Document]:
         strip_headers=False,
     )
     return splitter.split_text(text)
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # 5. DÉCOUPAGE PAR TAILLE (SÉCURITÉ)
 # ---------------------------------------------------------------------------
- 
+
 def split_by_size(
     documents: List[Document],
     max_chunk_size: int,
@@ -176,12 +176,12 @@ def split_by_size(
         length_function=len,
     )
     return splitter.split_documents(documents)
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # 6. DÉCOUPAGE SPÉCIAL : BLOCS DE SIGNATURE
 # ---------------------------------------------------------------------------
- 
+
 def split_signature_sections(md_text: str) -> List[Document]:
     """
     Isole les sections de signature en chunks dédiés.
@@ -209,7 +209,7 @@ def split_signature_sections(md_text: str) -> List[Document]:
 # ---------------------------------------------------------------------------
 # 7. CONSTRUCTION DES CHUNKS FINAUX
 # ---------------------------------------------------------------------------
- 
+
 def build_chunk_item(
     content: str,
     metadata_extra: Dict[str, Any],
@@ -264,8 +264,8 @@ def build_chunk_item(
             "next_chunk_id":        None,   # mis à jour au prochain tour
         },
     }
- 
- 
+
+
 def link_chunks(final_json_list: List[Dict]) -> List[Dict]:
     """
     Met à jour les liens next_chunk_id entre chunks consécutifs
@@ -283,12 +283,12 @@ def link_chunks(final_json_list: List[Dict]) -> List[Dict]:
         if i < total - 1:
             item["metadata"]["next_chunk_id"] = final_json_list[i + 1]["chunk_id"]
     return final_json_list
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # 8. PIPELINE PRINCIPAL
 # ---------------------------------------------------------------------------
- 
+
 def process_text_part(
     text: str,
     max_chunk_size: int,
