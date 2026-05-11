@@ -13,12 +13,9 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
     """
     
     # 1. Configuration du modèle d'embedding
-    # Note: Assurez-vous d'avoir votre clé API si vous utilisez OpenAI
-    # embeddings = OpenAIEmbeddings(model=os.getenv("EMBEDDINGS_MODEL"))
     embeddingModel = embedding_manager.model
     
     # 2. Préparation des données pour ChromaDB
-    # On sépare le texte, les métadonnées et les IDs
     texts = [chunk["content"] for chunk in json_chunks]
     ids = [chunk["chunk_id"] for chunk in json_chunks]
     
@@ -33,7 +30,6 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
         metadatas.append(flat_meta)
 
     # 3. Création et stockage dans la base vectorielle
-    # 'persist_directory' permet de sauvegarder la base sur le disque local
     vector_db = Chroma.from_texts(
         texts=texts,
         embedding=embeddingModel,

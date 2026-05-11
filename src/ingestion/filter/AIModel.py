@@ -1,7 +1,7 @@
 import textwrap
 
 from pydantic import BaseModel, Field
-from models.llm import LLMClient
+from ...models.llm import LLMClient
 
 # Définition du schéma de sortie
 class RAGDecision(BaseModel):

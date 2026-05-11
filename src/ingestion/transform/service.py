@@ -1,7 +1,7 @@
 import os
-from .parsing import _pdf_docling
-from .splitting import chuncking_md_data
-from .embedding import embed_chunks
+from src.ingestion.transform.parsing import _pdf_docling
+from src.ingestion.transform.splitting import chuncking_md_data
+from src.ingestion.transform.embedding import embed_chunks
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -46,8 +46,8 @@ def transform_pdf(file_path):
     return vector_db
 
 # Exemple d'usage :
-_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-# print(_PROJECT_ROOT)
-sample_pdf = _PROJECT_ROOT / "data/unstructured/pdf/265df2015-CNaPS_600fd1b4ca3383.50730780.pdf"
-text_result = transform_pdf(sample_pdf)
-# print(text_result)
+# _PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# # print(_PROJECT_ROOT)
+# sample_pdf = _PROJECT_ROOT / "data/unstructured/pdf/cps-CNaPS_600fd099d9b5d3.84095190.pdf"
+# text_result = transform_pdf(sample_pdf)
+# # print(text_result)

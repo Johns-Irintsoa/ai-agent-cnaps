@@ -1,18 +1,27 @@
-from fastapi import FastAPI, HTTPException
+# from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException
+
 from pydantic import BaseModel
+from pathlib import Path
+from fastapi.responses import JSONResponse
+import shutil
+import os
+
+from src.inference import multi_query_retriever
 # from models.llm import LLMClient
-from api.schemas import ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse, WebLoadResponse, FileLoadTestResponse, DocumentContent, IngestionRequest, PDFLoadRequest
-from ingestion.filter.functions import process_unstructured_data
+from .schemas import RAGResponse, ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse, WebLoadResponse, FileLoadTestResponse, DocumentContent, IngestionRequest, PDFLoadRequest
+from ..ingestion.filter.functions import process_unstructured_data
+from src.ingestion.transform.service import transform_pdf
+from src.inference.prompting import generate_answer
+from src.inference.evaluation import evaluate_answer
+from src.inference.service import ask_question
+
 
 app = FastAPI(title="AI Agent CNAPS")
 
-# _llm = LLMClient()
-
-
-# @app.post("/chat", response_model=ChatResponse)
-# def chat(request: ChatRequest) -> ChatResponse:
-#     answer = _llm.invoke(request.message)
-#     return ChatResponse(response=answer)
+# Dossier temporaire pour stocker les PDF reçus
+UPLOAD_DIR = Path("temp_uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 @app.post("/scraper/index", response_model=IndexResponse)
@@ -124,3 +133,56 @@ async def load_pdfs_data(request: PDFLoadRequest) -> WebLoadResponse:
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Endpoint pour l'ingestion de PDF via upload CHROMA db
+
+@app.post("/ingest-pdf")
+async def ingest_pdf(file: UploadFile = File(...)):
+    """
+    Endpoint pour uploader un PDF et lancer le pipeline RAG.
+    """
+    # 1. Validation du type de fichier
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
+
+    file_path = UPLOAD_DIR / file.filename
+
+    try:
+        # 2. Sauvegarde temporaire du fichier sur le disque
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 3. Appel de transform_pdf
+        result = transform_pdf(str(file_path))
+
+        if result is None:
+            raise HTTPException(status_code=500, detail="Le traitement du PDF a échoué.")
+
+        return JSONResponse(content={
+            "message": f"Document '{file.filename}' indexé avec succès",
+            "status": "success"
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
+
+    finally:
+        # 4. Nettoyage : supprimer le fichier temporaire après traitement
+        if file_path.exists():
+            os.remove(file_path)
+
+@app.post("/ask", response_model=RAGResponse)
+async def ask(request: ChatRequest):
+    """
+    Endpoint qui effectue un retrieval multi-query,
+    génère une réponse et l'évalue.
+    """
+    try:
+        user_query = request.message
+        # Appel de la fonction modifiée
+        result = ask_question(user_query)
+        return RAGResponse(**result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors du traitement de la requête: {str(e)}")

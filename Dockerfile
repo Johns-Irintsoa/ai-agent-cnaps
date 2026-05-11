@@ -33,7 +33,7 @@ RUN pip install --upgrade pip --quiet
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --progress-bar off \
         python-dotenv "httpx==0.27.2" rarfile \
-        fastapi "uvicorn[standard]" pydantic-settings
+        fastapi "uvicorn[standard]" pydantic-settings python-multipart
 
 # ── Groupe 2 : IA & Parsing (Le coeur du problème) ──
 # Installation de Torch CPU en premier pour alléger la suite
@@ -94,11 +94,20 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY cnaps_urls.json .
 
+USER root
+
 # Préparer les répertoires de cache pour les modèles IA
 RUN mkdir -p /home/appuser/.cache/docling /home/appuser/.cache/huggingface \
-    && chown -R appuser:appuser /home/appuser/.cache /app
+    && chown -R appuser:appuser /home/appuser/.cache /app \ 
+    && chown -R appuser:appuser /opt/venv \
+    && chown -R appuser:appuser /home/appuser/.cache \
+    && chown -R appuser:appuser /app
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 
 USER appuser
 
 # Le script sera exécuté avec le venv actif par défaut via le PATH
-CMD ["python", "src/main.py"]
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

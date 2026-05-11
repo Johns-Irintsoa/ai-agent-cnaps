@@ -8,7 +8,7 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 # On initialise le cache AVANT toute autre action
-import config_env
+# import config_env
 
 from dotenv import load_dotenv
 load_dotenv()

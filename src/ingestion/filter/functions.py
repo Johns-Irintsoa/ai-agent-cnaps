@@ -7,14 +7,14 @@ src_path = os.path.abspath(os.path.join(current_dir, "../../.."))
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-import config_env # Initialisation du cache /tmp
+# import config_env # Initialisation du cache /tmp
 
 import os
 import requests
 # from docling.datamodel.base_models import InputFormat
 # from docling.document_converter import DocumentConverter
 from .AIModel import DocumentValidator
-from models.llm import LLMClient
+from ...models.llm import LLMClient
 
 # 3. PIPELINE DE TRAITEMENT
 import os

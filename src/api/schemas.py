@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import Dict, Any
 
 class ChatRequest(BaseModel):
     message: str
@@ -7,6 +7,10 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+class RAGResponse(BaseModel):
+    answer: str
+    evaluation: Dict[str,Any]
 
 
 class IndexRequest(BaseModel):
