@@ -18,7 +18,15 @@ rarfile
 pydantic-settings
 docling
 pymupdf 
-pdf2image 
-pytesseract 
-opencv-python 
+pdf2image
+pytesseract
+opencv-python
 numpy
+redis>=5.0.0
+
+python-multipart
+torch
+torchvision --index-url https://download.pytorch.org/whl/cpu
+transformers
+scipy
+pylatexenc

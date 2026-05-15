@@ -29,18 +29,44 @@ ENV PIP_DEFAULT_TIMEOUT=1000 \
 
 RUN pip install --upgrade pip --quiet
 
-# Copier le fichier requirements.txt
-COPY requirements.txt .
+# ── Groupe 1 : Outils stables & Web ──────────
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --progress-bar off \
+        python-dotenv "httpx==0.27.2" rarfile \
+        fastapi "uvicorn[standard]" pydantic-settings python-multipart
 
-# 1. Installer torch / torchvision en premier (nécessite un index spécial)
-RUN pip install --progress-bar off \
-    --index-url https://download.pytorch.org/whl/cpu \
-    torch torchvision
+# ── Groupe 2 : IA & Parsing (Le coeur du problème) ──
+# Installation de Torch CPU en premier pour alléger la suite
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --progress-bar off \
+        torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# 2. Installer toutes les autres dépendances depuis requirements.txt
-#    On exclut les lignes torch/torchvision pour éviter les doublons
-RUN grep -vE "^(torch|torchvision)" requirements.txt > /tmp/req_other.txt \
-    && pip install --progress-bar off -r /tmp/req_other.txt
+# INSTALLATION GROUPÉE : On laisse pip résoudre le conflit Typer entre Docling et Transformers
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --progress-bar off \
+        docling \
+        transformers \
+        scipy \
+        numpy \
+        pylatexenc \
+        "beautifulsoup4==4.12.3" \
+        "pypdf==4.3.1" \
+        "python-docx==1.1.2" \
+        "unstructured[image]"
+
+# ── Groupe 3 : Autres outils lourds & LangChain ──
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --progress-bar off \
+        chromadb \
+        langchain \
+        langchain-core \
+        langchain-openai \
+        langchain-community \
+        langchain-chroma \
+        langchain-unstructured
+
+# ── Groupe 4 : Modèle spaCy ──
+RUN pip install spacy && python -m spacy download en_core_web_sm
 
 # Vérification immédiate de l'import Docling
 RUN python -c "from docling.document_converter import DocumentConverter; print('Docling importé avec succès !')"
@@ -83,4 +109,5 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 USER appuser
 
+# Le script sera exécuté avec le venv actif par défaut via le PATH
 CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

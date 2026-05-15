@@ -16,8 +16,23 @@ from src.inference.prompting import generate_answer
 from src.inference.evaluation import evaluate_answer
 from src.inference.service import ask_question
 
+# L'usage de contextLib pour redis
+from contextlib import asynccontextmanager
+from ..inference.cache.semantic_cache import semantic_cache
+import logging
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Agent CNAPS")
+# L'usage du semantic cache dans le contexte de l'application FastAPI
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Connexion au cache sémantique (initialise Redis + index)
+    await semantic_cache.connect()
+    logger.info("Cache sémantique démarré")
+    yield
+    # Fermeture propre
+    await semantic_cache.close()
+
+app = FastAPI(title="AI Agent CNAPS", lifespan=lifespan)
 
 # Dossier temporaire pour stocker les PDF reçus
 UPLOAD_DIR = Path("temp_uploads")
@@ -180,7 +195,7 @@ async def ask(request: ChatRequest):
     try:
         user_query = request.message
         # Appel de la fonction modifiée
-        result = ask_question(user_query)
+        result = await ask_question(user_query)
         return RAGResponse(**result)
     except Exception as e:
         import traceback

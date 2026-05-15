@@ -1,46 +1,39 @@
+import asyncio
+
 from src.inference.query_retriever import get_query_vector, search_similar_documents
 from src.inference.reranking import get_reranked_documents
 from src.inference.prompting import generate_answer, generate_answer_multi_query
 from src.inference.evaluation import print_evaluation, evaluate_answer
 
-from src.inference.multi_query_retriever import  multi_query_retriever
+from src.inference.multi_query_retriever import  multi_query_retriever_async
 from typing import Dict, Any
+from .cache.semantic_cache import semantic_cache
 
 
-def ask_question(user_query: str)-> Dict[str, Any]:
+async def ask_question(user_query: str)-> Dict[str, Any]:
     """
     Fonction principale pour traiter une question utilisateur : 
+    0. Verifier le cache sémantique pour une question similaire (optionnel, à intégrer)
     1. Récupérer les documents pertinents via multi-query retrieval
     2. Générer une réponse à partir de ces documents
     3. Évaluer la qualité de la réponse
     """
-    
-    docs = multi_query_retriever(
+    # Vérifier le cache
+    cached = await semantic_cache.get(user_query)
+    if cached:
+        answer, _ = cached
+        return {"answer": answer, "evaluation": {}, "from_cache": True}
+
+    docs = await multi_query_retriever_async(
         query=user_query,
         top_k_per_query=4,
         top_k_final=4,
     )
-    
-    print(f"✅ {len(docs)} chunks retournés\n")
-    for i, doc in enumerate(docs, 1):
-        print(f"[{i}] {doc.metadata.get('source', '?')} "
-                f"| table={doc.metadata.get('is_table', False)}")
-        print(f"    {doc.page_content.strip()}...\n")
-
-    # 2 generer une réponse à partir des documents multi-query
-    answer = generate_answer_multi_query(user_query, docs)
-    print("\n--- Réponse du LLM ---")
-    print(answer)
-    
-    # 3  evaluer la reponse
-    scores = evaluate_answer(user_query, docs, answer)
-    print("\n--- Évaluation de la réponse ---")
-    print_evaluation(scores)
-
-    return {
-        "answer": answer,
-        "evaluation": scores
-    }
+    # Generer une réponse à partir des documents multi-query
+    answer = await asyncio.to_thread(generate_answer_multi_query, user_query, docs)
+    # Mettre en cache en arrière‑plan
+    asyncio.create_task(semantic_cache.set(user_query, answer, {"docs_count": len(docs)}))
+    return {"answer": answer, "evaluation": {}, "from_cache": False}
 
 # if __name__ == "__main__":
 

@@ -1,0 +1,21 @@
+FROM img-cnaps-base
+
+# Repasser en root pour pouvoir copier les fichiers et ajuster les permissions
+USER root
+
+
+# Copier tout le code source et les fichiers nécessaires
+COPY src/ /app/src/
+COPY cnaps_urls.json /app/
+COPY entrypoint.sh /entrypoint.sh
+
+# Rendre le script exécutable et attribuer les bonnes permissions
+RUN chmod +x /entrypoint.sh \
+    && chown -R appuser:appuser /app /entrypoint.sh
+
+# Revenir à l'utilisateur non‑root
+USER appuser
+
+# Point d’entrée et commande par défaut
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

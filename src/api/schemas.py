@@ -10,7 +10,8 @@ class ChatResponse(BaseModel):
 
 class RAGResponse(BaseModel):
     answer: str
-    evaluation: Dict[str,Any]
+    # response_id: str
+    # evaluation: Dict[str,Any] = None
 
 
 class IndexRequest(BaseModel):
