@@ -1,0 +1,7 @@
+# Utiliser python slim comme image de base
+FROM python:3.12-slim
+
+# Repertoire de travail
+WORKDIR /app
+
+
