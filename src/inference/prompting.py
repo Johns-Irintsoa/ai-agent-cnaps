@@ -22,18 +22,14 @@ QUESTION : {question}
 RÉPONSE (courte et utile) :"""
 
 # 1 Generate answer for simple retrieval
-def generate_answer(query: str, reranked_docs: List[Document]) -> str:
+def generate_answer(query: str, reranked_docs: List[Document]) -> tuple[str, dict]:
     """
     Prend la query et les documents rerankés, construit le prompt et invoque le LLM.
+    Retourne (answer: str, tokens: dict) avec prompt_tokens, completion_tokens, total_tokens.
     """
-    # List[Document] → string
     context = "\n\n---\n\n".join([doc.page_content for doc in reranked_docs])
-    
-    # Injection dans le template
     prompt = PROMPT_TEMPLATE.format(context=context, question=query)
-    
-    # Invocation du LLM
-    return _llm_client.invoke(prompt)
+    return _llm_client.invoke_with_usage(prompt)
 
 # 2 Generate response for multi-query retrieval (ex: question + 3 reformulations)
 def generate_answer_multi_query(query: str, docs: List[Document]) -> str:

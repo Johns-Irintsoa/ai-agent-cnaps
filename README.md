@@ -75,6 +75,16 @@ API_PORT=8000
 
 ### Lancer avec Docker
 
+**0. Construire l'image de base (a faire une seule fois)**
+
+L'image `img-torch-base` est requise avant de lancer le projet. Elle contient les dependances PyTorch lourdes et sert de base a l'image applicative.
+
+```bash
+docker build -f Dockerfile.torch -t img-torch-base .
+```
+
+> Cette etape n'est necessaire qu'une seule fois. Une fois l'image construite et mise en cache par Docker, elle n'est plus rebatie lors des prochains `docker compose up --build`.
+
 **Premier lancement (telechargement des modeles ~5 GB) :**
 ```bash
 docker compose up --build

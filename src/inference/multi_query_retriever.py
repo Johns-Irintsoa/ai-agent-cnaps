@@ -14,6 +14,7 @@ from langchain_chroma import Chroma
 
 from ..models.llm import LLMClient
 from ..models.embedding import embedding_manager
+from ..db.chroma_client import ChromaClient
 
 # ---------------------------------------------------------------------------
 # LOGGING & CONSTANTES
@@ -62,7 +63,7 @@ def _search_single_query(query: str, collection_name: str, top_k: int) -> List[D
     vectordb = Chroma(
         collection_name=collection_name,
         embedding_function=embedding_model,
-        persist_directory=os.getenv("VECTOR_DB_DIR"),
+        client=ChromaClient.get_client(),
     )
     retriever = vectordb.as_retriever(
         search_type="similarity",

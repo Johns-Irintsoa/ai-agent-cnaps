@@ -1,10 +1,10 @@
 services:
   app:
     container_name: ai-agent-cnaps
-    image: ai-agent-cnaps-app
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile.base
+    # image: ai-agent-cnaps-app
+    build:
+      context: .
+      dockerfile: Dockerfile.base
     env_file:
       - .env
     command: python -m uvicorn src.api.app:app --host 0.0.0.0 --port 8000
@@ -13,13 +13,36 @@ services:
     volumes:
       - ./src:/app/src
       - ./data:/app/data
-      - chroma_data:/app/vector_cnaps_db
     extra_hosts:
       - "model-runner.docker.internal:host-gateway"
     environment:
       - UVICORN_LOOP=asyncio
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
     networks:
       - app-network
+    depends_on:
+      - chromadb
+  
+  chromadb:
+    image: chromadb/chroma:1.5.10.dev28       # stable, pas .dev26
+    container_name: cnaps_chromadb
+    ports:
+      - "8001:8000"                      # host:conteneur — pas 8002
+    volumes:
+      - chroma_data:/cnaps_data                # /data pour v1.x, pas /chroma/chroma
+    networks:
+      - app-network
+    environment:
+      - CHROMA_CORS_ALLOW_ORIGINS=["http://localhost:3001", "http://chromadb-admin:3001"]
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "cat < /dev/null > /dev/tcp/localhost/8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Pas de IS_PERSISTENT — obsolète en v1.x
+
   redis-cache:
     # 1. Utiliser image stable et légère
     image: redis/redis-stack:latest
@@ -68,6 +91,21 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
+
+  chromadb-admin:
+    image: fengzhichao/chromadb-admin:latest
+    container_name: chromadb-admin
+    ports:
+      - "3001:3001"
+    environment:
+      # Essayez l'une de ces 3 options (ou les 3 pour être sûr)
+      - CHROMA_URL=http://chromadb:8000
+      - NEXT_PUBLIC_CHROMA_URL=http://chromadb:8000
+      - CHROMA_SERVER_URL=http://chromadb:8000
+    networks:
+      - app-network
+    depends_on:
+      - chromadb
 
 networks:
   app-network:

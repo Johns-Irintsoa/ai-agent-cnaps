@@ -30,3 +30,4 @@ torchvision --index-url https://download.pytorch.org/whl/cpu
 transformers
 scipy
 pylatexenc
+rank_bm25>=0.2.2

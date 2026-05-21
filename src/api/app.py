@@ -1,5 +1,6 @@
 # from fastapi import FastAPI, HTTPException
 from fastapi import FastAPI, UploadFile, File, HTTPException
+import asyncio
 
 from pydantic import BaseModel
 from pathlib import Path
@@ -28,7 +29,15 @@ async def lifespan(app: FastAPI):
     # Connexion au cache sémantique (initialise Redis + index)
     await semantic_cache.connect()
     logger.info("Cache sémantique démarré")
+
+    # Construction de l'index BM25 depuis ChromaDB au démarrage
+    from ..inference.bm25_retriever import bm25_index
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, bm25_index.build)
+    logger.info("BM25 index construit au démarrage")
+
     yield
+
     # Fermeture propre
     await semantic_cache.close()
 
@@ -172,6 +181,11 @@ async def ingest_pdf(file: UploadFile = File(...)):
 
         if result is None:
             raise HTTPException(status_code=500, detail="Le traitement du PDF a échoué.")
+
+        # 4. Refresh BM25 en arrière-plan après ingestion
+        from ..inference.bm25_retriever import bm25_index
+        asyncio.get_event_loop().run_in_executor(None, bm25_index.refresh)
+        logger.info("BM25 refresh planifié après ingestion de '%s'", file.filename)
 
         return JSONResponse(content={
             "message": f"Document '{file.filename}' indexé avec succès",

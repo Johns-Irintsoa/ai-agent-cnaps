@@ -13,7 +13,6 @@ def get_query_vector(query: str):
     """
     Transforme une question textuelle en un vecteur numérique (liste de floats).
     """
-    # La méthode embed_query est optimisée pour transformer une seule chaîne
     vector = embeddingModel.embed_query(query)
     return vector
 
@@ -23,11 +22,31 @@ def search_similar_documents(query: str, k: int = 5) -> List[Document]:
     Effectue une recherche de similarité et retourne les k documents les plus proches.
     """
     db = get_vector_db(embeddingModel)
-    
-    # LangChain gère l'embedding de la query automatiquement ici
-    # car embedding_function a été passée lors de l'initialisation de la DB
     results = db.similarity_search(query, k=k)
-    
     return results
+
+
+def search_by_vector(vector: list, k: int = 5) -> List[Document]:
+    """
+    Recherche ChromaDB à partir d'un vecteur pré-calculé.
+    À utiliser après get_query_vector() pour séparer le timing embedding / retrieval.
+    """
+    db = get_vector_db(embeddingModel)
+    return db.similarity_search_by_vector(vector, k=k)
+
+
+def search_hybrid(query: str, k: int = 5) -> List[Document]:
+    """
+    Recherche hybride : combine la recherche vectorielle (Chroma) et BM25
+    via Reciprocal Rank Fusion (RRF). Retourne les k meilleurs documents.
+    """
+    from .bm25_retriever import bm25_index
+    from .multi_query_retriever import reciprocal_rank_fusion
+
+    vector_results = search_similar_documents(query, k=k)
+    bm25_results = bm25_index.search(query, top_k=k)
+
+    fused = reciprocal_rank_fusion([vector_results, bm25_results])
+    return fused[:k]
 
 

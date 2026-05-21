@@ -51,7 +51,8 @@ RUN pip install --no-cache-dir \
 
 RUN pip install --no-cache-dir \
     httpx==0.27.2 beautifulsoup4==4.12.3 python-multipart \
-    transformers pydantic-settings
+    transformers pydantic-settings \
+    rank_bm25>=0.2.2
 
 # Vérification que docling s'importe (torch est déjà là)
 RUN python -c "from docling.document_converter import DocumentConverter; print('Docling importé avec succès !')"

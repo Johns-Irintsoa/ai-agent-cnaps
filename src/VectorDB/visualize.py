@@ -1,5 +1,6 @@
 import chromadb
 import os
+from ..db.chroma_client import ChromaClient
 
 def debug_chroma_simple(
     collection_name: str = "rag_cnaps",
@@ -8,10 +9,9 @@ def debug_chroma_simple(
     Recherche les chunks liés à l'ampliation sans LLM.
     Utilise uniquement get() avec filtres metadata et full-text.
     Aucun embedding, aucun LLM requis.
+    Se connecte via HttpClient (Docker) ou PersistentClient (local) selon CHROMA_HOST.
     """
-    client = chromadb.PersistentClient(
-        path=os.getenv("VECTOR_DB_DIR", "./vector_cnaps_db")
-    )
+    client = ChromaClient.get_client()
     collection = client.get_collection(name=collection_name)
 
     print(f"📦 Total chunks : {collection.count()}\n")
@@ -39,23 +39,3 @@ def debug_chroma_simple(
 
 if __name__ == "__main__":
     debug_chroma_simple()
-
-
-# # ✅ Chemin correct trouvé
-# client = chromadb.PersistentClient(path="/app/vector_cnaps_db")
-
-# # Lister les collections
-# collections = client.list_collections()
-# print("Collections disponibles :")
-# for col in collections:
-#     print(f"  - {col.name}")
-
-# # Voir les données d'une collection
-# col = client.get_collection("rag_cnaps")
-# data = col.get(include=["documents", "metadatas"])
-
-# print(f"\nNombre de documents : {len(data['ids'])}")
-# for i, doc_id in enumerate(data['ids']):
-#     print(f"\n[{doc_id}]")
-#     print(f"  Document  : {data['documents'][i]}")
-#     print(f"  Métadonnée: {data['metadatas'][i]}")

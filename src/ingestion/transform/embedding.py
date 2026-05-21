@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings # Ou un modèle gratuit comme SentenceTransformers
 from ...models.embedding import embedding_manager
+from ...db.chroma_client import ChromaClient
 
 
 load_dotenv()  # Charge les variables d'environnement depuis le fichier .env
@@ -36,7 +37,7 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
         metadatas=metadatas,
         ids=ids,
         collection_name=collection_name,
-        persist_directory=os.getenv("VECTOR_DB_DIR")
+        client=ChromaClient.get_client(),
     )
 
     print(f"✅ {len(json_chunks)} chunks ont été vectorisés et stockés dans '{collection_name}'.")
