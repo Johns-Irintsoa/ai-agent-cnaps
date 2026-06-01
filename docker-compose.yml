@@ -34,7 +34,7 @@ services:
     networks:
       - app-network
     environment:
-      - CHROMA_CORS_ALLOW_ORIGINS=["http://localhost:3001", "http://chromadb-admin:3001"]
+      - CHROMA_CORS_ALLOW_ORIGINS=["http://localhost:3000", "http://localhost:3001", "http://chromadb-admin:3001"]
     healthcheck:
       test: ["CMD", "/bin/bash", "-c", "cat < /dev/null > /dev/tcp/localhost/8000"]
       interval: 10s
