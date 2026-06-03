@@ -13,12 +13,15 @@ services:
     volumes:
       - ./src:/app/src
       - ./data:/app/data
+      - ./cnaps_urls.json:/app/cnaps_urls.json
+      # - ./registry.json:/app/registry.json
     extra_hosts:
       - "model-runner.docker.internal:host-gateway"
     environment:
       - UVICORN_LOOP=asyncio
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
+      - PYTHONPATH=/app/src
     networks:
       - app-network
     depends_on:

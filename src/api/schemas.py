@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List, Literal, Optional
 
 class ChatRequest(BaseModel):
     message: str
@@ -57,3 +57,6 @@ class IngestionRequest(BaseModel):
 
 class PDFLoadRequest(BaseModel):
     pdf_path: str
+
+
+

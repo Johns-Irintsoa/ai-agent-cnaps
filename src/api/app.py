@@ -8,14 +8,21 @@ from fastapi.responses import JSONResponse
 import shutil
 import os
 
-from src.inference import multi_query_retriever
+from ..inference import multi_query_retriever
 # from models.llm import LLMClient
-from .schemas import RAGResponse, ChatRequest, ChatResponse, IndexRequest, IndexResponse, AskRequest, AskResponse, WebIngestionResponse, WebLoadResponse, FileLoadTestResponse, DocumentContent, IngestionRequest, PDFLoadRequest
+from .schemas import (
+    RAGResponse, ChatRequest, ChatResponse,
+    IndexRequest, IndexResponse,
+    AskRequest, AskResponse,
+    WebIngestionResponse, WebLoadResponse,
+    FileLoadTestResponse, DocumentContent,
+    IngestionRequest, PDFLoadRequest,
+)
 from ..ingestion.filter.functions import process_unstructured_data
-from src.ingestion.transform.service import transform_pdf
-from src.inference.prompting import generate_answer
-from src.inference.evaluation import evaluate_answer
-from src.inference.service import ask_question
+from ..ingestion.transform.service import transform_pdf
+from ..inference.prompting import generate_answer
+from ..inference.evaluation import evaluate_answer
+from ..inference.service import ask_question
 
 # L'usage de contextLib pour redis
 from contextlib import asynccontextmanager
@@ -48,24 +55,24 @@ UPLOAD_DIR = Path("temp_uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 
-@app.post("/scraper/index", response_model=IndexResponse)
-def scraper_index(request: IndexRequest) -> IndexResponse:
-    try:
-        documents = load_page(request.url)
-        chunks = split_text(documents)
-        index_docs(chunks)
-        return IndexResponse(indexed_chunks=len(chunks))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/scraper/index", response_model=IndexResponse)
+# def scraper_index(request: IndexRequest) -> IndexResponse:
+#     try:
+#         documents = load_page(request.url)
+#         chunks = split_text(documents)
+#         index_docs(chunks)
+#         return IndexResponse(indexed_chunks=len(chunks))
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/scraper/ask", response_model=AskResponse)
-def scraper_ask(request: AskRequest) -> AskResponse:
-    try:
-        answer = answer_question(request.question)
-        return AskResponse(answer=answer)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/scraper/ask", response_model=AskResponse)
+# def scraper_ask(request: AskRequest) -> AskResponse:
+#     try:
+#         answer = answer_question(request.question)
+#         return AskResponse(answer=answer)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/ingestion/scrap", response_model=WebIngestionResponse)
@@ -96,7 +103,7 @@ def scrap_web_data() -> WebIngestionResponse:
 
 @app.post("/ingestion/load/web-data", response_model=WebLoadResponse)
 def ingestion_load_web_data() -> WebLoadResponse:
-    from src.ingestion.load.Service import load_web_data
+    from ..ingestion.load.Service import load_web_data
     try:
         docs = load_web_data()
         return WebLoadResponse(

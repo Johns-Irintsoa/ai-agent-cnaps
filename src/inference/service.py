@@ -1,12 +1,12 @@
 import asyncio
 import logging
 
-from src.inference.query_retriever import get_query_vector, search_by_vector
-from src.inference.bm25_retriever import bm25_index
-from src.inference.multi_query_retriever import reciprocal_rank_fusion
-from src.inference.reranking import get_reranked_documents
-from src.inference.prompting import generate_answer
-from src.inference.timer import RAGTimer
+from .query_retriever import get_query_vector, search_by_vector
+from .bm25_retriever import bm25_index
+from .multi_query_retriever import reciprocal_rank_fusion
+from .reranking import get_reranked_documents
+from .prompting import generate_answer
+from .timer import RAGTimer
 from typing import Dict, Any
 from .cache.semantic_cache import semantic_cache
 

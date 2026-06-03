@@ -9,7 +9,6 @@ from .utils import (
     link_chunks,
 )
 
-from langchain_core.documents import Document
 
 def chuncking_md_data(
     md_text: str,
