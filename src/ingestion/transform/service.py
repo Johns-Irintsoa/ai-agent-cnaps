@@ -6,8 +6,9 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
 from .parsing import _pdf_docling
-from .splitting import chuncking_md_data
+from .splitting import chuncking_md_data, chunking_md_html
 from .embedding import embed_chunks
+from ..scraping.WebPageScrapper import extract_urls
 
 load_dotenv()
 
@@ -52,4 +53,31 @@ def transform_pdf(file_path: str) -> Optional[object]:
 
     print(f"--- Terminé ! Document '{filename}' prêt pour le RAG ---")
     return vector_db
+
+
+def transform_web_page(collection_name: str = None) -> Optional[object]:
+    if collection_name is None:
+        collection_name = os.getenv("COLLECTION_NAME", "rag_cnaps")
+
+    print("--- Etape 1 : Extraction des pages web CNaPS ---")
+    extracted_pages = extract_urls()
+
+    if not extracted_pages:
+        print("Erreur : Aucune page extraite.")
+        return None
+
+    # print(f"--- Etape 2 : Decoupage de {len(extracted_pages)} page(s) en chunks ---")
+    # all_chunks = []
+    # for page in extracted_pages:
+    #     all_chunks.extend(chunking_md_html(page))
+
+    # if not all_chunks:
+    #     print("Erreur : Aucun chunk produit.")
+    #     return None
+
+    # print(f"--- Etape 3 : Vectorisation de {len(all_chunks)} chunk(s) ---")
+    # vector_db = embed_chunks(all_chunks, collection_name=collection_name)
+
+    # print(f"--- Termine ! {len(all_chunks)} chunks web stockes dans '{collection_name}' ---")
+    # return vector_db
 

@@ -19,7 +19,7 @@ from .schemas import (
     IngestionRequest, PDFLoadRequest,
 )
 from ..ingestion.filter.functions import process_unstructured_data
-from ..ingestion.transform.service import transform_pdf
+from ..ingestion.transform.service import transform_pdf, transform_web_page
 from ..inference.prompting import generate_answer
 from ..inference.evaluation import evaluate_answer
 from ..inference.service import ask_question
@@ -206,6 +206,22 @@ async def ingest_pdf(file: UploadFile = File(...)):
         # 4. Nettoyage : supprimer le fichier temporaire après traitement
         if file_path.exists():
             os.remove(file_path)
+
+@app.post("/ingestion/web-pages", response_model=WebIngestionResponse)
+async def ingest_web_pages() -> WebIngestionResponse:
+    try:
+        result = transform_web_page()
+        if result is None:
+            raise HTTPException(status_code=500, detail="Ingestion des pages web echouee.")
+        from ..inference.bm25_retriever import bm25_index
+        asyncio.get_event_loop().run_in_executor(None, bm25_index.refresh)
+        return WebIngestionResponse(
+            status="success",
+            message="Pages web CNaPS ingrees et indexees dans ChromaDB.",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/ask", response_model=RAGResponse)
 async def ask(request: ChatRequest):

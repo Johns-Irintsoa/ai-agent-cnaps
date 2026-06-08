@@ -1,12 +1,19 @@
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
+from .models import WebPageContentChunked
 from .utils import (
-    extract_signature_blocks,
-    split_tables_from_text,
-    process_text_part,
     build_chunk_item,
+    extract_signature_blocks,
+    flatten_metadata,
+    generate_chunk_id,
     link_chunks,
+    normalize_md_text,
+    prefix_chunk_with_context,
+    process_text_part,
+    split_by_headers,
+    split_by_tokens,
+    split_tables_from_text,
 )
 
 
@@ -79,3 +86,30 @@ def chuncking_md_data(
  
     # ── Étape finale : liens next complets + total_chunks ──────────────────
     return link_chunks(final_json_list)
+
+
+def chunking_md_html(page) -> List[WebPageContentChunked]:
+    # Phase 1 — Normalize & flatten metadata
+    clean_text = normalize_md_text(page.contenu_md)
+    flat_meta = flatten_metadata(page)
+
+    # Phase 2 — Semantic split: headers first, then token-aware size
+    header_docs = split_by_headers(clean_text)
+    token_docs = split_by_tokens(header_docs, max_tokens=512, overlap_tokens=77)
+
+    # Phase 3 — Context enrichment: prefix each chunk with page title
+    enriched_texts = [
+        prefix_chunk_with_context(doc.page_content, flat_meta["title"])
+        for doc in token_docs
+    ]
+
+    # Phase 4 — ID generation & assembly
+    total = len(enriched_texts)
+    return [
+        WebPageContentChunked(
+            id=generate_chunk_id(flat_meta["source_url"], i),
+            document=text,
+            metadata={**flat_meta, "chunk_index": i, "total_chunks": total},
+        )
+        for i, text in enumerate(enriched_texts)
+    ]

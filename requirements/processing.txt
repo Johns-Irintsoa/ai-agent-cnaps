@@ -1,0 +1,11 @@
+docling
+unstructured[image]
+pypdf
+python-docx
+pdf2image
+pytesseract
+opencv-python
+pillow
+pymupdf
+rarfile
+trafilatura==2.0.0

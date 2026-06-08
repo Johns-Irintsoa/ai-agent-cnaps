@@ -1,86 +1,94 @@
 # syntax=docker/dockerfile:1
+# Dockerfile optimisé pour le développement local avec découpage des dépendances
+# Les requirements sont séparés en 3 fichiers pour maximiser le cache Docker
 
-# ============================================
-# STAGE 1 : Builder
-# ============================================
-FROM python:3.11-slim AS builder
+# -----------------------------------------------------------------------------
+# Stage de construction (builder)
+# -----------------------------------------------------------------------------
+FROM img-torch-base AS builder
+
+# Éviter les interactions tzdata et autres prompts
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /build
 
-# Augmenter le timeout pour apt-get
-RUN echo 'Acquire::http::Timeout "30";' > /etc/apt/apt.conf.d/99timeout \
-    && apt-get update && apt-get install -y \
+# Dépendances système nécessaires à la compilation des paquets Python
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libmagic-dev \
         libtesseract-dev \
         libpoppler-cpp-dev \
         gcc \
         g++ \
-        --no-install-recommends \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Créer l’environnement virtuel
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Configuration PIP pour éviter les déconnexions (IncompleteRead)
-ENV PIP_DEFAULT_TIMEOUT=1000 \
-    PIP_RETRIES=20 \
-    PIP_NO_CACHE_DIR=0
+# Mettre à jour pip (optionnel mais recommandé)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --upgrade pip
 
-RUN pip install --upgrade pip --quiet
+# Copier et installer les dépendances par groupe (du plus stable au plus volatile)
 
-# Copier le fichier requirements.txt
-COPY requirements.txt .
+# 1. Socle de base (rarement changé)
+COPY requirements/base.txt /tmp/base.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/base.txt
 
-# 1. Installer torch / torchvision en premier (nécessite un index spécial)
-RUN pip install --progress-bar off \
-    --index-url https://download.pytorch.org/whl/cpu \
-    torch torchvision
+# 2. ML / LLM / Vector DB (assez stable)
+COPY requirements/ml.txt /tmp/ml.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/ml.txt
 
-# 2. Installer toutes les autres dépendances depuis requirements.txt
-#    On exclut les lignes torch/torchvision pour éviter les doublons
-RUN grep -vE "^(torch|torchvision)" requirements.txt > /tmp/req_other.txt \
-    && pip install --progress-bar off -r /tmp/req_other.txt
+# 3. Traitement de documents (le plus souvent modifié)
+COPY requirements/processing.txt /tmp/processing.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/processing.txt
 
-# Vérification immédiate de l'import Docling
-RUN python -c "from docling.document_converter import DocumentConverter; print('Docling importé avec succès !')"
-
-# ============================================
-# STAGE 2 : Runtime
-# ============================================
+# -----------------------------------------------------------------------------
+# Stage d’exécution (runtime)
+# -----------------------------------------------------------------------------
 FROM python:3.11-slim
 
-# Créer l'utilisateur avant tout pour les permissions
+# Créer un utilisateur non‑root
 RUN useradd -m -u 1000 appuser
 
-RUN echo "deb http://deb.debian.org/debian bookworm non-free" >> /etc/apt/sources.list \
-    && apt-get update && apt-get install -y \
+# Installer les dépendances système nécessaires au runtime (sans les compilateurs)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    echo "deb http://deb.debian.org/debian bookworm non-free" >> /etc/apt/sources.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
         p7zip-full unrar tesseract-ocr tesseract-ocr-fra \
         poppler-utils libmagic1 libtesseract5 libpoppler-cpp2 \
         libgl1 libglib2.0-0 libgomp1 wget \
-        --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Récupérer l'environnement virtuel du builder
+# Copier l’environnement virtuel depuis le builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
-COPY cnaps_urls.json .
 
-USER root
-
-# Préparer les répertoires de cache pour les modèles IA
+# Créer les dossiers de cache utilisateur et ajuster les droits
 RUN mkdir -p /home/appuser/.cache/docling /home/appuser/.cache/huggingface \
-    && chown -R appuser:appuser /home/appuser/.cache /app \ 
-    && chown -R appuser:appuser /opt/venv \
     && chown -R appuser:appuser /home/appuser/.cache \
+    && chown -R appuser:appuser /opt/venv \
+    && chown -R appuser:appuser /home/appuser \
     && chown -R appuser:appuser /app
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-
+# Copier le code source et les fichiers de configuration
+COPY src/ /app/src/
+COPY cnaps_urls.json /app/
+# Utilisateur non‑root
 USER appuser
 
+# Exposer le port de l’application (informative)
+EXPOSE 8000
+
+# Commande par défaut (sans --reload, le compose l’ajoutera pour le dev)
 CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

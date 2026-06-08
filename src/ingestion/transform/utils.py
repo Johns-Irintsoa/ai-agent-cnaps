@@ -336,3 +336,43 @@ def clean_ocr_text(text: str) -> str:
     text = re.sub(r",le\s+", ", le ", text)
 
     return text
+
+
+# ---------------------------------------------------------------------------
+# 9. HELPERS POUR LE PIPELINE HTML (chunking_md_html)
+# ---------------------------------------------------------------------------
+
+
+def normalize_md_text(text: str) -> str:
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def flatten_metadata(page) -> Dict[str, Any]:
+    return {
+        "source_url": page.metadata.source_url,
+        "title": page.metadata.title,
+        "date_posted": page.metadata.date_posted,
+    }
+
+
+def split_by_tokens(
+    documents: List[Document],
+    max_tokens: int = 512,
+    overlap_tokens: int = 77,
+) -> List[Document]:
+    splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        encoding_name="cl100k_base",
+        chunk_size=max_tokens,
+        chunk_overlap=overlap_tokens,
+        separators=["\n## ", "\n### ", "\n\n", "\n", " ", ""],
+    )
+    return splitter.split_documents(documents)
+
+
+def prefix_chunk_with_context(chunk_text: str, title: str) -> str:
+    return f"Document : {title}\nContenu : {chunk_text}"
+
+
+def generate_chunk_id(source_url: str, index: int) -> str:
+    return f"{source_url}#chunk{index}"

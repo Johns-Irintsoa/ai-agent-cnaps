@@ -2,9 +2,6 @@
   "cnaps_urls": [
     {
       "url": "https://www.cnaps.mg/fr/cnaps/mot-du-directeur-general",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "content-article__date",
@@ -12,205 +9,124 @@
         "Paragraphestandard",
         "wrap-article"
       ],
-      "ignore_classes": [],
-      "commentaire": "Il existe dans ce lien des liens dynamique qui contient des fichier EXCEL, PNG, PDF",
-      "note_ingestion": "Page unique. Les fichiers joints (EXCEL, PNG, PDF) sont ignorés par le pipeline HTML — à uploader manuellement via le tableau de bord admin."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/actualites",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
-        "title-slide__item",
-        "content-article__date",
-        "content-article__texte"
+        "result-search",
+        "liste-result",
+        "liste-result__item grid-result__item"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Liens de tous les actualités de la CNAPS. Il existe des liens dynamique pour chaque contenu d'actualité. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Liste paginée sur 12 pages. Parcourir toutes les pages ?page=N, collecter tous les sous-liens /fr/actualite/, extraire les 3 classes sur chaque sous-lien. Si content-article__texte est une image JPEG/PNG, marquer image_only:true et ignorer."
+      "pagination_selector": "result-pagination",
+      "is_paginated": true
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/historique",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Page unique. Contenu texte long sur l'historique de la CNAPS depuis 1956. Pas de pagination ni de sous-liens à suivre."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/missions-et-engagements",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [],
-      "commentaire": "Il existe dans ces class des liens dynamique qui sont 404 not found, du coup ne scrappe pas ces liens",
-      "note_ingestion": "Page unique. Ne pas suivre les liens internes trouvés dans le contenu — ils retournent 404. Extraire uniquement le texte des classes cibles."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/contacter/",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "contact-group__title",
         "contact-group__about",
         "content-article__texte"
       ],
-      "ignore_classes": [],
-      "commentaire": "Dans ce liens se trouve tous les contacts disponibles de la cnaps dans tous Madagascar, il ya un peu de CSS dans ce liens, afin de voir tous les contacts de la cnaps il va falloir changer l'etat de du section overflow: hidden; transition-property: height; height: 0px; transition-duration: 250ms; dans la class container par juste section style",
-      "note_ingestion": "Page unique. Le contenu des délégations régionales est masqué par CSS overflow:hidden. Utiliser BeautifulSoup directement sur le HTML brut (non rendu) — BS4 ignore le CSS et lit tout le contenu masqué sans manipulation nécessaire."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/relations-internationales",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Page unique. Contenu textuel sur les conventions internationales de sécurité sociale. Pas de pagination ni de sous-liens à suivre."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/prestations-familiales",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
-        "title-slide__item",
-        "content-article__date",
-        "content-article__texte"
+        "result-search",
+        "liste-result",
+        "liste-result__item grid-result__item"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Dans cette liste-result__item grid-result__item contient de liens, et tu vas voir le contenu de liens, et dans ce liens contiens des titres dans la classe title-slide__item, la date de publication dans content-article__date et les textes dans la classe content-article__texte",
-      "note_ingestion": "Liste de 6 articles. Collecter les sous-liens via les éléments liste-result__item, puis extraire les 3 classes sur chaque sous-lien /fr/actualite/. Certains articles contiennent des fichiers DOCX téléchargeables — ignorer ces fichiers, extraire uniquement le texte HTML."
+      "pagination_selector": "result-pagination",
+      "is_paginated": true
     },
     {
       "url": "https://www.cnaps.mg/fr/actualite/remboursement-des-frais-d-accouchement",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [],
-      "commentaire": "Dans ce liens nous avons un fichier telechargeable et voici le liens du fichier telecheargeables: https://www.cnaps.mg/uploads/formulaires/drfm-CNaPS_600fce1e8c4265.01969731.docx, ce fichier est propose a l'utilisateur si il ou elle souhait realise un remboursement des frais d'accouchement",
-      "note_ingestion": "Page article unique — déjà un sous-lien de /fr/categorie/prestations-familiales. Si ingéré via le pipeline dynamic de prestations-familiales, cette URL sera collectée automatiquement. Ne pas ingérer en double. Le fichier DOCX joint est à uploader manuellement via admin."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/accidents-de-travail-et-maladies-professionnelles",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Liste avec sous-liens articles. Même pattern que /fr/categorie/actualites. Parcourir la pagination, collecter les sous-liens /fr/actualite/, extraire les 3 classes."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/prestations-de-retraite",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Liste avec sous-liens articles. Même pattern que /fr/categorie/actualites."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/hygiene-sante-et-actions-sociales",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Liste avec sous-liens articles. Même pattern que /fr/categorie/actualites."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/historique-SME",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "title-slide__item",
         "table table-bordered border-primary",
         "table table-light"
       ],
-      "ignore_classes": [],
-      "commentaire": "Ce lien contient l'HISTORIQUE DU SALAIRE MINIMUM D'EMBAUCHE (SME)",
-      "note_ingestion": "Page unique avec tableau HTML natif. Docling préserve bien la structure des tableaux HTML. Re-ingérer 1 à 2 fois par an quand le SME est mis à jour."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/faq",
-      "type": "html_direct",
-      "has_sublinks": false,
-      "sublink_pattern": null,
       "classes": [
         "faq-content__items"
       ],
-      "ignore_classes": [],
-      "commentaire": "Les contenu de ce liens se trouve dans les class qui contient ces noms de class",
-      "note_ingestion": "Page unique. Structure accordéon Q/R. BS4 lit tout le contenu HTML brut y compris les sections dépliées — pas de problème de contenu masqué avec BS4."
+      "is_paginated": false
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/communique-de-presse",
-      "type": "html_dynamic",
-      "has_sublinks": true,
-      "sublink_pattern": "/fr/actualite/",
       "classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
       ],
-      "ignore_classes": [
-        "content-article__image-big"
-      ],
-      "commentaire": "Il existe des liens dynamique pour chaque contenu. Dans chacune des liens dynamique ignore le contenu image dans ce class: content-article__image-big. Il se peut aussi que le content-articl__texte soit un un image JPEG ou PNG, contenu d'un image et de texte.",
-      "note_ingestion": "Liste avec sous-liens articles. Même pattern que /fr/categorie/actualites."
+      "is_paginated": false
     }
   ]
 }

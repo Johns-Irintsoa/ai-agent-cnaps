@@ -54,6 +54,7 @@ RUN pip install --no-cache-dir \
     transformers pydantic-settings \
     rank_bm25>=0.2.2
 
+RUN pip install --no-cache-dir trafilatura==2.0.0
 # Vérification que docling s'importe (torch est déjà là)
 RUN python -c "from docling.document_converter import DocumentConverter; print('Docling importé avec succès !')"
 
@@ -86,12 +87,12 @@ RUN mkdir -p /home/appuser/.cache/docling /home/appuser/.cache/huggingface \
 # Copie du code source et des fichiers nécessaires
 COPY src/ /app/src/
 COPY cnaps_urls.json /app/
-COPY entrypoint.sh /entrypoint.sh
+# COPY entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh \
-    && chown -R appuser:appuser /app /entrypoint.sh
+# RUN chmod +x /entrypoint.sh \
+#     && chown -R appuser:appuser /app /entrypoint.sh
 
 USER appuser
 
-ENTRYPOINT ["/entrypoint.sh"]
+# ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
