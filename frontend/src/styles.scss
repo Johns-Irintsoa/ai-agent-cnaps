@@ -1,0 +1,15 @@
+@use 'styles/variables' as *;
+@use 'styles/animations';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  color: $color-text;
+  background: transparent;
+}

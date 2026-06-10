@@ -1,0 +1,24 @@
+<div class="input-area">
+  <textarea
+    class="input-field"
+    placeholder="Posez votre question..."
+    rows="1"
+    [value]="text()"
+    (input)="text.set($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+    [disabled]="chat.isLoading()"
+    aria-label="Votre message"
+  ></textarea>
+
+  <button
+    class="send-btn"
+    (click)="send()"
+    [disabled]="!text().trim() || chat.isLoading()"
+    aria-label="Envoyer"
+    title="Envoyer"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+    </svg>
+  </button>
+</div>

@@ -1,0 +1,13 @@
+# Développement — hot-reload via ng serve
+FROM node:22-alpine
+
+WORKDIR /app
+
+RUN npm install -g @angular/cli@latest --quiet
+
+COPY package*.json ./
+RUN npm install
+
+EXPOSE 4200
+
+CMD ["ng", "serve", "--host", "0.0.0.0", "--proxy-config", "proxy.conf.json", "--poll", "500"]

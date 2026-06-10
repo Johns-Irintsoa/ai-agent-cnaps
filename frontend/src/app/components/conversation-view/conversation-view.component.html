@@ -1,0 +1,9 @@
+<div class="messages" #scrollContainer>
+  @for (msg of chat.messages(); track msg.id) {
+    <app-message-bubble [message]="msg" />
+  }
+
+  @if (chat.isLoading()) {
+    <app-typing-indicator />
+  }
+</div>

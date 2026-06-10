@@ -1,0 +1,59 @@
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">Historique Chat</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="header-icon">
+      <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/>
+    </svg>
+  </div>
+
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'recent'"
+      (click)="activeTab.set('recent')"
+    >Récents</button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'all'"
+      (click)="activeTab.set('all')"
+    >Tous</button>
+  </div>
+
+  <div class="entries">
+    @if (activeTab() === 'recent') {
+      @for (entry of session.recent(); track entry.id) {
+        <div class="entry">
+          <div class="icon-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </div>
+          <span class="entry-text">{{ entry.question }}</span>
+        </div>
+      }
+      @empty {
+        <p class="empty">Aucune question récente</p>
+      }
+    } @else {
+      @for (entry of session.all(); track entry.id) {
+        <div class="entry">
+          <div class="icon-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </div>
+          <span class="entry-text">{{ entry.question }}</span>
+        </div>
+      }
+      @empty {
+        <p class="empty">Aucune conversation</p>
+      }
+    }
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="new-chat-btn" (click)="newChat.emit()">
+      + Nouveau chat
+    </button>
+  </div>
+</aside>

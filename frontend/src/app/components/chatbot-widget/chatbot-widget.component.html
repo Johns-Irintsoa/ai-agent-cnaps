@@ -1,0 +1,24 @@
+<app-floating-icon />
+
+@if (chat.isOpen()) {
+  <div class="chat-window" [class.with-sidebar]="sidebarOpen()">
+    <div class="chat-main">
+      <app-chat-header (toggleSidebar)="toggleSidebar()" />
+
+      <div class="chat-content">
+        @if (chat.activeView() === 'welcome') {
+          <app-welcome-screen />
+        } @else {
+          <app-conversation-view />
+        }
+      </div>
+
+      <app-chat-input />
+    </div>
+
+    @if (sidebarOpen()) {
+      <div class="sidebar-overlay" (click)="toggleSidebar()"></div>
+      <app-sidebar (newChat)="resetAndClose()" />
+    }
+  </div>
+}

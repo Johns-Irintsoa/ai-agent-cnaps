@@ -1,0 +1,68 @@
+@use '../../../styles/variables' as *;
+
+.input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid $color-border;
+  background: $color-bg;
+  flex-shrink: 0;
+}
+
+.input-field {
+  flex: 1;
+  resize: none;
+  border: 1px solid $color-border;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: $color-text;
+  background: $color-bg-light;
+  outline: none;
+  max-height: 100px;
+  overflow-y: auto;
+  line-height: 1.4;
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: $color-accent;
+    background: $color-bg;
+  }
+
+  &::placeholder {
+    color: $color-text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: $color-accent;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background: $color-accent-dark;
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    background: $color-border;
+    cursor: not-allowed;
+    transform: none;
+  }
+}

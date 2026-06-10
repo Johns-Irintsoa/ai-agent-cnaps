@@ -1,5 +1,5 @@
 services:
-  app:
+  backend:
     container_name: rag-cnaps-project
     image: img-rag-cnaps:0.0.1
     build:
@@ -106,7 +106,6 @@ services:
     ports:
       - "3001:3001"
     environment:
-      # Essayez l'une de ces 3 options (ou les 3 pour être sûr)
       - CHROMA_URL=http://chromadb:8000
       - NEXT_PUBLIC_CHROMA_URL=http://chromadb:8000
       - CHROMA_SERVER_URL=http://chromadb:8000
@@ -114,6 +113,22 @@ services:
       - app-network
     depends_on:
       - chromadb
+
+  # ─── Frontend Lucy BOT ────────────────────────────────────────────
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: lucy-frontend-dev
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    depends_on:
+      - backend
 
 networks:
   app-network:

@@ -1,0 +1,145 @@
+@use '../../../styles/variables' as *;
+
+.sidebar {
+  width: $sidebar-width;
+  height: 100%;
+  border-left: 1px solid $color-border;
+  background: $color-bg;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-radius: 0 $border-radius $border-radius 0;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid $color-border;
+}
+
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-text;
+}
+
+.header-icon {
+  color: $color-accent;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid $color-border;
+  padding: 0 12px;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  text-align: left;
+
+  &.active {
+    color: $color-accent;
+    border-bottom-color: $color-accent;
+    font-weight: 600;
+  }
+
+  &:hover:not(.active) {
+    color: $color-text;
+  }
+}
+
+.entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-thumb {
+    background: $color-border;
+    border-radius: 2px;
+  }
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $color-bubble-user;
+  }
+}
+
+// Icône carrée avec fond bleu — comme dans le template
+.icon-wrapper {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  background: $color-accent;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.entry-text {
+  font-size: 12.5px;
+  color: $color-text;
+  line-height: 1.45;
+  padding-top: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.empty {
+  font-size: 12px;
+  color: $color-text-muted;
+  text-align: center;
+  padding: 24px 8px;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid $color-border;
+  flex-shrink: 0;
+}
+
+.new-chat-btn {
+  width: 100%;
+  padding: 11px;
+  background: $color-primary;
+  color: white;
+  border: none;
+  border-radius: $border-radius-sm;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $color-accent;
+  }
+}
