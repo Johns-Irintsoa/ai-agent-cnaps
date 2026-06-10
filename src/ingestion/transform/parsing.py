@@ -3,10 +3,17 @@ import os
 from typing import Optional
 
 import trafilatura
+from bs4 import BeautifulSoup
 
-from ..scraping.models import WebPageContentExtracted, WebPageMetadata
+from ..scraping.models import WebPageContent, WebPageContentExtracted, WebPageMetadata
+
+from .utils import get_class_contained, _fragments_to_markdown
 
 logger = logging.getLogger(__name__)
+
+_FALLBACK_CONTENT = (
+    "Voici la page concernant cette information que vous demandez : {title}. Publié le {date}."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -23,30 +30,66 @@ def _pdf_docling(file_path: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
-# HTML (URL) → WebPageContentExtracted via trafilatura
+# HTML (classes CSS ciblées) → WebPageContentExtracted via trafilatura
 # ---------------------------------------------------------------------------
 
-def _parse_html(url: str) -> Optional[WebPageContentExtracted]:
-    downloaded = trafilatura.fetch_url(url)
-    if not downloaded:
-        logger.warning("_parse_html: aucun contenu telecharge depuis %s", url)
+
+def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
+    html = trafilatura.fetch_url(page.url)
+    if not html:
+        logger.warning("_parse_html: echec pour %s", page.url)
         return None
 
-    texte_markdown = trafilatura.extract(downloaded, output_format="markdown", include_links=True)
-    metas_brutes = trafilatura.extract_metadata(downloaded)
+    soup = BeautifulSoup(html, "html.parser")
+    title_tag = None
+    date_tag = None
+    contenu_md = None
 
-    if not texte_markdown:
-        logger.warning("_parse_html: extraction vide depuis %s", url)
-        return None
+    if page.classes:
+        seen: set = set()
+        fragments = []
+        for cls in page.classes:
+            if title_tag is None and get_class_contained("title", cls):
+                title_tag = soup.find(class_=cls)
+            if date_tag is None and get_class_contained("date", cls):
+                date_tag = soup.find(class_=cls)
+            for tag in soup.find_all(class_=cls):
+                if id(tag) not in seen:
+                    seen.add(id(tag))
+                    fragments.append(str(tag))
+        frag_soup = BeautifulSoup("".join(fragments), "html.parser")
+        contenu_md = _fragments_to_markdown(frag_soup)
+    else:
+        contenu_md = trafilatura.extract(
+            html,
+            output_format="markdown",
+            include_links=True,
+            include_formatting=True,
+        )
 
-    logger.info("_parse_html: extraction reussie depuis %s", url)
+    if title_tag is None:
+        title_tag = soup.find("title")
+
+    title_from_class = title_tag.get_text(strip=True) if title_tag else None
+    date_from_class = date_tag.get_text(strip=True) if date_tag else None
+
+    metas = None
+    if not (title_from_class or date_from_class):
+        metas = trafilatura.extract_metadata(html)
+
+    title = title_from_class or (metas.title if metas else "Titre inconnu")
+    date = date_from_class or (metas.date if metas else "Date inconnue")
+
+    if not contenu_md:
+        logger.warning("_parse_html: extraction vide pour %s, document synthetique cree", page.url)
+        contenu_md = _FALLBACK_CONTENT.format(title=title, date=date)
+
+    logger.info("_parse_html: extraction reussie depuis %s", page.url)
     return WebPageContentExtracted(
-        contenu_md=texte_markdown,
+        contenu_md=contenu_md,
         metadata=WebPageMetadata(
-            source_url=url,
-            title=metas_brutes.title if metas_brutes else "Titre inconnu",
-            date_posted=metas_brutes.date if metas_brutes else "Date inconnue",
+            source_url=page.url,
+            title=title,
+            date_posted=date,
         ),
     )
-
-

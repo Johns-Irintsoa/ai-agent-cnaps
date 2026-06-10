@@ -36,14 +36,19 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
         ids.append(chunk_id)
         metadatas.append(meta)
 
-    vector_db = Chroma.from_texts(
-        texts=texts,
-        embedding=embeddingModel,
+    client = ChromaClient.get_client()
+    collection = client.get_or_create_collection(collection_name)
+    embeddings = embeddingModel.embed_documents(texts)
+    collection.upsert(
+        documents=texts,
+        embeddings=embeddings,
         metadatas=metadatas,
         ids=ids,
-        collection_name=collection_name,
-        client=ChromaClient.get_client(),
     )
 
     print(f"✅ {len(json_chunks)} chunks vectorises et stockes dans '{collection_name}'.")
-    return vector_db
+    return Chroma(
+        collection_name=collection_name,
+        embedding_function=embeddingModel,
+        client=client,
+    )

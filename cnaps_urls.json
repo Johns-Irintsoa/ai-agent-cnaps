@@ -1,6 +1,35 @@
 {
   "cnaps_urls": [
     {
+      "url": "https://www.cnaps.mg/fr/categorie/actualites",
+      "classes": [
+        "result-search",
+        "liste-result",
+        "liste-result__item grid-result__item"
+      ],
+      "pagination_selector": ".result-pagination__group",
+      "item_classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "is_contained_list": true
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/communique-de-presse",
+      "classes": [
+        "result-search",
+        "liste-result",
+        "liste-result__item grid-result__item"
+      ],
+      "item_classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ],
+      "is_contained_list": false
+    },
+    {
       "url": "https://www.cnaps.mg/fr/cnaps/mot-du-directeur-general",
       "classes": [
         "title-slide__item",
@@ -8,18 +37,7 @@
         "content-article__publication",
         "Paragraphestandard",
         "wrap-article"
-      ],
-      "is_paginated": false
-    },
-    {
-      "url": "https://www.cnaps.mg/fr/categorie/actualites",
-      "classes": [
-        "result-search",
-        "liste-result",
-        "liste-result__item grid-result__item"
-      ],
-      "pagination_selector": "result-pagination",
-      "is_paginated": true
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/historique",
@@ -27,8 +45,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/missions-et-engagements",
@@ -36,8 +53,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/contacter/",
@@ -45,8 +61,7 @@
         "contact-group__title",
         "contact-group__about",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/cnaps/relations-internationales",
@@ -54,8 +69,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/prestations-familiales",
@@ -63,9 +77,7 @@
         "result-search",
         "liste-result",
         "liste-result__item grid-result__item"
-      ],
-      "pagination_selector": "result-pagination",
-      "is_paginated": true
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/actualite/remboursement-des-frais-d-accouchement",
@@ -73,8 +85,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/accidents-de-travail-et-maladies-professionnelles",
@@ -82,8 +93,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/prestations-de-retraite",
@@ -91,8 +101,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/hygiene-sante-et-actions-sociales",
@@ -100,8 +109,7 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/historique-SME",
@@ -109,24 +117,15 @@
         "title-slide__item",
         "table table-bordered border-primary",
         "table table-light"
-      ],
-      "is_paginated": false
+      ]
     },
     {
       "url": "https://www.cnaps.mg/fr/faq",
       "classes": [
         "faq-content__items"
-      ],
-      "is_paginated": false
-    },
-    {
-      "url": "https://www.cnaps.mg/fr/categorie/communique-de-presse",
-      "classes": [
-        "title-slide__item",
-        "content-article__date",
-        "content-article__texte"
-      ],
-      "is_paginated": false
+      ]
     }
+
   ]
 }
+

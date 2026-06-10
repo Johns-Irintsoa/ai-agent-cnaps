@@ -376,3 +376,32 @@ def prefix_chunk_with_context(chunk_text: str, title: str) -> str:
 
 def generate_chunk_id(source_url: str, index: int) -> str:
     return f"{source_url}#chunk{index}"
+
+def get_class_contained(str1: str, str2: str) -> bool:
+    return str1.lower() in str2.lower()
+
+
+def _fragments_to_markdown(frag_soup: BeautifulSoup) -> str:
+    lines = []
+    for el in frag_soup.find_all(["h1", "h2", "h3", "h4", "p", "ul", "ol"]):
+        if el.find_parent(["ul", "ol"]):
+            continue
+        text = el.get_text(strip=True)
+        if not text:
+            continue
+        tag = el.name
+        if tag == "h1":
+            lines.append(f"# {text}")
+        elif tag == "h2":
+            lines.append(f"## {text}")
+        elif tag == "h3":
+            lines.append(f"### {text}")
+        elif tag == "h4":
+            lines.append(f"#### {text}")
+        elif tag == "p":
+            lines.append(text)
+        elif tag in ("ul", "ol"):
+            for li in el.find_all("li"):
+                lines.append(f"- {li.get_text(strip=True)}")
+    return "\n\n".join(lines)
+

@@ -1,14 +1,18 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
+class WebPageFromJSON(BaseModel):
+    url: str
+    classes: List[str] = []
+    item_classes: Optional[List[str]] = None
+    pagination_selector: Optional[str] = None
+    is_contained_list: Optional[bool] = False
 
 class WebPageContent(BaseModel):
     """" Represente une page web à scraper, avec son URL et les classes CSS à cibler pour l'extraction. """
     url: str
     classes: List[str] = []
-    pagination_selector: str | None = None
-    is_paginated: bool = False
 
 class WebPageContentConverted(BaseModel):
     """

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -12,12 +13,9 @@ from ..scraping.WebPageScrapper import extract_urls
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Pipeline PDF
-# ---------------------------------------------------------------------------
-
-
+# Extract PDF
 def transform_pdf(file_path: str) -> Optional[object]:
     """
     Pipeline complet pour un fichier PDF : Extraction → Chunking → Vectorisation.
@@ -54,30 +52,41 @@ def transform_pdf(file_path: str) -> Optional[object]:
     print(f"--- Terminé ! Document '{filename}' prêt pour le RAG ---")
     return vector_db
 
-
+# Extract Web Pages from www.cnaps.mg
 def transform_web_page(collection_name: str = None) -> Optional[object]:
     if collection_name is None:
         collection_name = os.getenv("COLLECTION_NAME", "rag_cnaps")
 
-    print("--- Etape 1 : Extraction des pages web CNaPS ---")
+    logger.info("--- Etape 1 : Extraction des pages web CNaPS ---")
     extracted_pages = extract_urls()
 
     if not extracted_pages:
-        print("Erreur : Aucune page extraite.")
+        logger.error("Etape 1 echouee : Aucune page extraite.")
+        return None
+    logger.info("Etape 1 OK : %d page(s) extraites.", len(extracted_pages))
+
+    logger.info("--- Etape 2 : Decoupage de %d page(s) en chunks ---", len(extracted_pages))
+    all_chunks = []
+    for page in extracted_pages:
+        try:
+            chunks = chunking_md_html(page)
+            all_chunks.extend(chunks)
+            logger.info("  chunked %s → %d chunks", page.metadata.source_url, len(chunks))
+        except Exception as e:
+            logger.error("  erreur chunking pour %s : %s", page.metadata.source_url, e, exc_info=True)
+
+    if not all_chunks:
+        logger.error("Etape 2 echouee : Aucun chunk produit.")
+        return None
+    logger.info("Etape 2 OK : %d chunks au total.", len(all_chunks))
+
+    logger.info("--- Etape 3 : Vectorisation de %d chunk(s) dans '%s' ---", len(all_chunks), collection_name)
+    try:
+        vector_db = embed_chunks(all_chunks, collection_name=collection_name)
+    except Exception as e:
+        logger.error("Etape 3 echouee : %s", e, exc_info=True)
         return None
 
-    # print(f"--- Etape 2 : Decoupage de {len(extracted_pages)} page(s) en chunks ---")
-    # all_chunks = []
-    # for page in extracted_pages:
-    #     all_chunks.extend(chunking_md_html(page))
-
-    # if not all_chunks:
-    #     print("Erreur : Aucun chunk produit.")
-    #     return None
-
-    # print(f"--- Etape 3 : Vectorisation de {len(all_chunks)} chunk(s) ---")
-    # vector_db = embed_chunks(all_chunks, collection_name=collection_name)
-
-    # print(f"--- Termine ! {len(all_chunks)} chunks web stockes dans '{collection_name}' ---")
-    # return vector_db
+    logger.info("--- Termine ! %d chunks web stockes dans '%s' ---", len(all_chunks), collection_name)
+    return vector_db
 

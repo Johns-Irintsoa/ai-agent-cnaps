@@ -7,6 +7,7 @@ from .multi_query_retriever import reciprocal_rank_fusion
 from .reranking import get_reranked_documents
 from .prompting import generate_answer
 from .timer import RAGTimer
+from .models import QueryMetaData
 from typing import Dict, Any
 from .cache.semantic_cache import semantic_cache
 
@@ -29,8 +30,14 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     # 0. Cache sémantique
     cached = await semantic_cache.get(user_query)
     if cached:
-        answer, _ = cached
-        return {"answer": answer, "evaluation": {}, "from_cache": True}
+        answer, meta_dict = cached
+        cached_metadata = QueryMetaData(**meta_dict) if meta_dict else None
+        return {
+            "answer": answer,
+            "metadata": cached_metadata.model_dump() if cached_metadata else None,
+            "evaluation": {},
+            "from_cache": True,
+        }
 
     # 1. Embedding — vecteur réutilisé pour ChromaDB (pas de double encoding)
     async with timer.ameasure("Embedding"):
@@ -58,6 +65,16 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     async with timer.ameasure("Generation LLM"):
         answer, tokens = await asyncio.to_thread(generate_answer, user_query, reranked_docs)
 
+    # Métadonnées du document source le plus pertinent
+    metadata = None
+    if reranked_docs:
+        m = reranked_docs[0].metadata
+        metadata = QueryMetaData(
+            source_url=m.get("source_url", ""),
+            title=m.get("title", "Titre inconnu"),
+            date_posted=m.get("date_posted", "Date inconnue"),
+        )
+
     # Rapport de timing dans les logs + retour dans evaluation
     timing = timer.report()
 
@@ -72,10 +89,13 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     )
 
     # 7. Mise en cache (fire-and-forget)
-    asyncio.create_task(semantic_cache.set(user_query, answer))
+    asyncio.create_task(
+        semantic_cache.set(user_query, answer, metadata.model_dump() if metadata else None)
+    )
 
     return {
         "answer": answer,
+        "metadata": metadata.model_dump() if metadata else None,
         "evaluation": {
             "timing": timing,
             "tokens": tokens,

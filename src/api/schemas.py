@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Dict, Any, List, Literal, Optional
+from ..inference.models import QueryMetaData
 
 class ChatRequest(BaseModel):
     message: str
@@ -10,8 +11,7 @@ class ChatResponse(BaseModel):
 
 class RAGResponse(BaseModel):
     answer: str
-    # response_id: str
-    # evaluation: Dict[str,Any] = None
+    metadata: Optional[QueryMetaData] = None
 
 
 class IndexRequest(BaseModel):

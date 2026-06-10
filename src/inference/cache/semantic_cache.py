@@ -35,6 +35,12 @@ RETRY_BACKOFF = float(os.getenv("CACHE_RETRY_BACKOFF", "0.5"))
 
 logger = logging.getLogger(__name__)
 
+_NO_ANSWER_PHRASES = (
+    "je n'ai pas l'information",
+    "contactez un agent cnaps",
+    "veuillez contacter un agent",
+)
+
 
 class SemanticCache:
     """Cache sémantique asynchrone."""
@@ -180,6 +186,10 @@ class SemanticCache:
         """Stocke une réponse dans le cache."""
         if not self._initialized:
             logger.warning("Cache non initialisé, écriture ignorée")
+            return False
+
+        if any(phrase in answer.lower() for phrase in _NO_ANSWER_PHRASES):
+            logger.info("Reponse sans info — non mise en cache : %s", answer[:80])
             return False
 
         if len(answer.split()) > CACHE_MAX_ANSWER_TOKENS:
