@@ -59,4 +59,21 @@ class PDFLoadRequest(BaseModel):
     pdf_path: str
 
 
+class DeleteBySourceURLRequest(BaseModel):
+    source_url: str
+
+
+class DeleteByIdsRequest(BaseModel):
+    ids: List[str]
+
+
+class DeleteResponse(BaseModel):
+    status: str
+    deleted_count: int
+    message: str
+
+
+class IngestURLRequest(BaseModel):
+    url: str
+    classes: List[str] = []
 

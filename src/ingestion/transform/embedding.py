@@ -1,4 +1,6 @@
 
+import logging
+
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 
@@ -7,6 +9,8 @@ from ...models.embedding import embedding_manager
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 
 def embed_chunks(json_chunks, collection_name="rag_cnaps"):
     """
@@ -14,6 +18,21 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
     Accepte soit des dicts (pipeline PDF) soit des WebPageContentChunked (pipeline web).
     """
     embeddingModel = embedding_manager.model
+
+    # Déduplication par ID (défense contre les doublons en amont)
+    seen_ids: set = set()
+    deduped = []
+    for chunk in json_chunks:
+        chunk_id = chunk["chunk_id"] if isinstance(chunk, dict) else chunk.id
+        if chunk_id not in seen_ids:
+            seen_ids.add(chunk_id)
+            deduped.append(chunk)
+    if len(deduped) < len(json_chunks):
+        logger.warning(
+            "embed_chunks: %d chunk(s) dupliqué(s) supprimé(s)",
+            len(json_chunks) - len(deduped),
+        )
+    json_chunks = deduped
 
     texts = []
     ids = []

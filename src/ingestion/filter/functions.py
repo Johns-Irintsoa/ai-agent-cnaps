@@ -14,6 +14,7 @@ import requests
 # from docling.datamodel.base_models import InputFormat
 # from docling.document_converter import DocumentConverter
 from .AIModel import DocumentValidator
+from docling import DocumentConverter
 from ...models.llm import LLMClient
 
 # 3. PIPELINE DE TRAITEMENT

@@ -1,325 +1,155 @@
-# CLAUDE.md
+# CLAUDE.md — ai-agent-cnaps
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 1. Présentation du projet
 
-## Project Overview
+Système RAG (Retrieval-Augmented Generation) pour CNaPS (caisse de retraite malgache) permettant la recherche sémantique et le Q&A sur des documents PDF et pages web via un LLM local.
 
-**ai-agent-cnaps** is a modular RAG (Retrieval-Augmented Generation) system for CNaPS (Madagascar's pension system). It enables semantic document search and question-answering over structured/unstructured documents using local LLM inference (no external API keys required).
+---
 
-### Core Architecture
+## 2. Stack technique
 
-The system follows a pipeline architecture:
+| Composant | Rôle |
+|---|---|
+| **FastAPI** (Python 3.11) | API REST, port 8000 |
+| **ChromaDB** (`chromadb/chroma:1.5.x`) | Stockage vectoriel, port 8001 |
+| **Redis Stack** | Cache sémantique + RediSearch, port 6379 (réseau interne) |
+| **Model Runner** (Docker Desktop) | Inference LLM (Mistral 7B) + embeddings (BGE-M3) + reranker |
+| **Angular 19** | Frontend chatbot "Lucy BOT", port 4200 |
+| **Nginx** (prod) | Reverse proxy frontend → backend |
+| **Docling** | Extraction PDF → Markdown |
+| **trafilatura** | Scraping HTML → Markdown |
+| **BM25** (`rank_bm25`) | Retrieval lexical hybride |
+
+---
+
+## 3. Architecture des dossiers
 
 ```
-User Query -> FastAPI (/ask)
-  |
-  v
-  Semantic Cache Check (Redis)
-  |
-  v
-  Multi-Query Retrieval (query reformulation + parallel vector search)
-  |
-  v
-  RRF Fusion (reciprocal rank fusion)
-  |
-  v
-  Reranking (cosine similarity)
-  |
-  v
-  LLM Answer Generation
-  |
-  v
-  Response + Cache Storage
+.
+├── src/
+│   ├── api/            # Routes FastAPI (app.py, schemas.py)
+│   ├── inference/      # Pipeline RAG : retrieval, reranking, LLM, cache
+│   │   └── cache/      # Cache sémantique Redis
+│   ├── ingestion/
+│   │   ├── load/       # Chargement PDF/HTML via UnstructuredLoader
+│   │   ├── transform/  # Parsing → Chunking → Embedding
+│   │   ├── filter/     # Classification LLM des documents
+│   │   ├── scraping/   # Modèles + scrapper web CNaPS
+│   │   └── store/      # Écriture dans ChromaDB
+│   ├── models/         # Wrappers LLM, embeddings, reranker
+│   ├── db/             # Clients Redis et ChromaDB
+│   └── config_env.py   # Redirection cache HF/RapidOCR (importé en premier)
+├── frontend/           # Angular 19 (chatbot widget Lucy BOT)
+├── tests/              # pytest : unit + integration
+├── cnaps_urls.json     # URLs CNaPS à ingérer
+├── docker-compose.yml
+├── requirements.txt
+└── .env.example
 ```
 
-**Main Entry Point:** `src/api/app.py` (FastAPI app) → `src/inference/service.py::ask_question()` (async orchestrator)
+---
 
-### Key Modules
+## 4. Commandes essentielles
 
-| Module | Purpose | Key Files |
-|--------|---------|-----------|
-| **Inference** | RAG pipeline orchestration & retrieval | service.py, multi_query_retriever.py, query_retriever.py, reranking.py, prompting.py |
-| **Ingestion** | Document loading, parsing, chunking, classification | load/, transform/, filter/, chunck/chuncking.py |
-| **Models** | LLM & embedding wrappers (OpenAI-compatible API) | models/llm.py, models/embedding.py, models/reranking.py |
-| **Caching** | Redis-backed semantic cache with RediSearch | inference/cache/semantic_cache.py, db/redis_client.py |
-| **VectorDB** | Chroma initialization & persistence | VectorDB/initialize.py |
-| **Classification** | AI-based document type classification | data_classificateur/ |
-
-### External Infrastructure
-
-- **Model Runner** (Docker) - Runs local LLMs (Mistral 7B) via OpenAI-compatible API
-- **Chroma** - Persistent vector store (SQLite backend at `./vector_cnaps_db`)
-- **Redis** - Semantic caching + RediSearch index
-
-## Build & Run Commands
-
-### Docker Compose (Recommended)
-
+### Démarrer la stack complète
 ```bash
-# First run (downloads models ~5 GB for Mistral + BGE-M3)
-docker compose up --build
-
-# Subsequent runs (instant startup from cached volumes)
-docker compose up
+docker compose up --build        # premier lancement
+docker compose up                # lancements suivants
 ```
 
-**Services started:**
-- FastAPI app on http://localhost:8000
-- Redis on internal network (no external port)
-- Model Runner (assumed running separately or via compose extension)
-
-**Health check:**
-- Swagger UI: http://localhost:8000/docs
-- POST `/ask` to test the RAG pipeline
-
-### Local Development (Without Docker)
-
+### Relancer un service spécifique
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment
-cp .env.example .env
-# Edit .env: set LLM_BASE_URL to your Model Runner instance
-
-# Run FastAPI directly
-uvicorn src.api.app:app --reload --port 8000
+docker compose restart backend
+docker compose up --build backend   # après modification de code
+docker compose logs -f backend      # suivre les logs
 ```
 
-**Prerequisites:**
-- Model Runner must be running (external Docker container or service)
-- Redis must be accessible at `redis://redis-cache:6379/0` (set `REDIS_URL` in `.env`)
-- Vector DB directory must exist: `./vector_cnaps_db`
-
-### Testing Endpoints
-
+### Lancer les tests
 ```bash
-# Query the RAG system
+# Dans le conteneur backend
+docker compose exec backend pytest tests/ -v
+docker compose exec backend pytest tests/ -v -m "not integration"  # sans réseau
+```
+
+### Appels API principaux
+```bash
+# Question RAG
 curl -X POST http://localhost:8000/ask \
   -H "Content-Type: application/json" \
-  -d '{"message": "Quelle est l'"'"'article 5?"}'
+  -d '{"message": "Quels sont les droits à la retraite ?"}'
 
-# View API schema
-curl http://localhost:8000/docs
+# Ingestion PDF
+curl -X POST http://localhost:8000/ingest-pdf \
+  -F "file=@/chemin/vers/document.pdf"
+
+# Ingestion pages web CNaPS
+curl -X POST http://localhost:8000/ingestion/web-pages
+
+# Interface swagger
+open http://localhost:8000/docs
+
+# Frontend chatbot
+open http://localhost:4200
 ```
 
-## Configuration
+---
 
-### Environment Variables (.env)
+## 5. Conventions de code
 
-**LLM & Embeddings:**
-```env
-LLM_BASE_URL=http://model-runner.docker.internal:12434/engines/llama.cpp/v1
-LLM_MODEL=huggingface.co/bartowski/mistral-7b-instruct-v0.3-gguf:q4_k_m
-LLM_API_KEY=no-key
-EMBEDDINGS_MODEL=huggingface.co/gpustack/bge-m3-gguf
-LLM_RERANKING_BASE_URL=http://model-runner.docker.internal:12434/engines/llama.cpp/v1
-LLM_RERANKING_MODEL=huggingface.co/gpustack/bge-reranker-v2-m3-gguf
+**Nommage**
+- `snake_case` pour fonctions et variables, `PascalCase` pour classes
+- Préfixe `_` pour fonctions internes (`_pdf_docling`, `_parse_html`, `_fragments_to_markdown`)
+- Modules nommés par rôle : `parsing.py`, `splitting.py`, `embedding.py`, `service.py`
+
+**Structure des modules**
+- Un `service.py` par domaine orchestre les fonctions du module
+- Séparation stricte : load / transform / store / inference
+- `logging.getLogger(__name__)` dans chaque module, jamais `print()` en production
+
+**Async/await**
+- Toute l'inférence (`ask_question`) est `async`
+- Les appels bloquants (ChromaDB, BM25, LLM) passent par `asyncio.to_thread()`
+- Cache Redis entièrement async via `aioredis`
+
+**Gestion d'erreurs**
+- Chaque route FastAPI a un `try/except` → `HTTPException(status_code=500)`
+- Les fonctions de service retournent `None` en cas d'échec, pas d'exception propagée
+- `logger.warning` ou `logger.error` systématique avant tout `return None`
+
+**Types**
+- Type hints systématiques (`Optional[str]`, `List[Document]`, `Dict[str, Any]`)
+- Modèles Pydantic pour toutes les requêtes et réponses API
+
+---
+
+## 6. Points d'attention
+
+**Ordre de démarrage (critique)**
+- `redis-cache` doit être `healthy` avant `backend` (healthcheck compose)
+- `chromadb` doit être démarré avant `backend`
+- Le BM25 index est construit au démarrage (`lifespan`) depuis ChromaDB — ChromaDB vide = index vide
+
+**Variables d'environnement obligatoires**
+```
+LLM_BASE_URL        # URL du Model Runner (LLM + embeddings + reranker)
+LLM_MODEL           # identifiant modèle Mistral
+EMBEDDINGS_MODEL    # identifiant modèle BGE-M3
+REDIS_PASSWORD      # mot de passe Redis (doit correspondre dans le compose)
+COLLECTION_NAME     # collection ChromaDB (défaut : rag_cnaps)
+CHROMA_HOST         # "chromadb" en Docker, vide en dev local
 ```
 
-**Vector Database:**
-```env
-VECTOR_DB_DIR=./vector_cnaps_db
-COLLECTION_NAME=rag_cnaps
-```
+**Fichiers à ne pas modifier sans précaution**
+- `src/config_env.py` : redirige le cache HF avant tout import ML — doit rester le premier import
+- `cnaps_urls.json` : structure stricte attendue par `convert_json_to_list()`
+- `docker-compose.yml` : le service backend s'appelle `backend` (proxy Angular pointe dessus)
 
-**Chunking:**
-```env
-CHUNCKING_MAX_TOKENS=450
-CHUNKING_OVERLAP_TOKENS=50
-```
+**Proxy frontend**
+- En dev Docker : `proxy.conf.json` route `/api` → `http://backend:8000` (nom de service Docker)
+- Le préfixe `/api` est supprimé avant d'atteindre le backend (`pathRewrite`)
 
-**Caching:**
-```env
-REDIS_URL=redis://redis-cache:6379/0
-REDIS_PASSWORD=your_password
-CACHE_SIMILARITY_THRESHOLD=0.92
-CACHE_TTL_SECONDS=86400
-CACHE_MAX_ANSWER_TOKENS=4000
-```
-
-**API:**
-```env
-API_HOST=0.0.0.0
-API_PORT=8000
-```
-
-See `.env.example` for all available options.
-
-## Core Workflows
-
-### RAG Query Processing (Main Workflow)
-
-**Flow:** `POST /ask` → `ask_question(user_query)` → Response
-
-1. **Semantic Cache Check** - Check Redis for semantically similar cached queries (threshold: 0.92)
-2. **Multi-Query Retrieval** - Generate 3 query reformulations via LLM
-3. **Parallel Vector Search** - Search Chroma for all 4 queries (original + 3 variants)
-4. **RRF Fusion** - Combine & deduplicate results using reciprocal rank fusion
-5. **Reranking** - Score documents via cosine similarity
-6. **Answer Generation** - Inject top documents into prompt template + invoke LLM
-7. **Cache Storage** - Store answer in Redis asynchronously
-
-**Key functions:**
-- `src/inference/service.py::ask_question()` - Main async orchestrator
-- `src/inference/multi_query_retriever.py::multi_query_retriever_async()` - Query generation + fusion
-- `src/inference/prompting.py::generate_answer_multi_query()` - LLM answer generation
-
-### Document Ingestion (PDF Upload)
-
-**Flow:** `POST /ingest-pdf` → `transform_pdf()` → Chroma indexing
-
-1. **Parsing** - Extract text/tables from PDF via Docling (with PyTesseract OCR fallback)
-2. **Chunking** - Split by document type (HTML headers, Markdown, tabular rows)
-3. **Embedding** - Generate vectors via BGE-M3
-4. **Storage** - Persist to Chroma with metadata
-
-**Key functions:**
-- `src/ingestion/transform/service.py::transform_pdf()` - Orchestrator
-- `src/ingestion/transform/parsing.py::_pdf_docling()` - Docling extraction
-- `src/ingestion/transform/splitting.py::chuncking_md_data()` - Smart chunking
-- `src/ingestion/transform/embedding.py::embed_chunks()` - Vectorization
-
-### Web Data Ingestion
-
-**Flow:** `POST /ingestion/load/web-data` → Load URLs from `cnaps_urls.json` → Chroma
-
-- Reads JSON config defining CNaPS website URLs
-- Uses `UnstructuredLoader` to scrape & parse HTML
-- Chunks & indexes to Chroma
-
-**Key functions:**
-- `src/ingestion/load/Service.py::load_web_data()` - Main orchestrator
-- `src/ingestion/load/UnstructuredLoader.py::load_html_from_url()` - Web scraping
-
-### Document Classification
-
-**Purpose:** Filter/categorize ingested documents (`FORMULAIRE`, `TABLEAU`, `TEXTE`, `AUTRE`)
-
-- Uses LLM-based classification to organize documents
-- Helps downstream systems handle different document types appropriately
-
-**Key functions:**
-- `src/data_classificateur/ClassificationLLM.py::build_prompt()` - Classification prompt
-- `src/ingestion/filter/functions.py::process_unstructured_data()` - Filter orchestrator
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/ask` | Query documents via RAG (main endpoint) |
-| POST | `/ingest-pdf` | Upload & index a single PDF |
-| POST | `/ingestion/load/web-data` | Load & index URLs from `cnaps_urls.json` |
-| POST | `/ingestion/filter` | Classify documents in a directory |
-| POST | `/load/pdfs` | Load PDFs from filesystem path |
-| GET | `/docs` | Swagger UI |
-
-Legacy endpoints: `/scraper/index`, `/scraper/ask`, `/ingestion/scrap`
-
-## Code Organization
-
-```
-src/
-├── api/                    # FastAPI application
-│   ├── app.py             # Route handlers & orchestration
-│   └── schemas.py         # Pydantic request/response models
-├── inference/             # RAG core pipeline
-│   ├── service.py         # Main async orchestrator (ask_question)
-│   ├── multi_query_retriever.py  # Query reformulation + RRF
-│   ├── query_retriever.py # Vector similarity search
-│   ├── reranking.py       # Document scoring
-│   ├── prompting.py       # Answer generation & prompt templates
-│   ├── evaluation.py      # Quality assessment
-│   └── cache/
-│       ├── semantic_cache.py     # Redis + RediSearch cache
-│       └── embedding_cache.py    # LRU cache for embeddings
-├── ingestion/             # Document processing pipeline
-│   ├── load/              # Web scraping & PDF loading
-│   ├── transform/         # Parsing (Docling) -> chunking -> embedding
-│   ├── filter/            # Document classification
-│   ├── scrap/             # Web scraping utilities
-│   ├── chunck/            # Smart chunking by doc type
-│   └── store/             # Vector store operations
-├── models/                # LLM & embedding wrappers
-│   ├── llm.py            # ChatOpenAI wrapper
-│   ├── embedding.py      # BGE-M3 embeddings
-│   └── reranking.py      # Reranker config
-├── db/                    # Database clients
-│   └── redis_client.py    # Async Redis with pool & health checks
-├── data_classificateur/   # Document type classification
-├── VectorDB/              # Chroma initialization
-└── config_env.py          # Environment setup (cache redirection)
-```
-
-## Important Implementation Details
-
-### Async/Await Pattern
-All I/O operations in `src/inference/service.py` use `asyncio`. `semantic_cache` is fully async (RediSearch queries). Blocking vector store calls run in thread executor via `asyncio.to_thread()`.
-
-### Prompt Engineering
-The system prompt in `src/inference/prompting.py::PROMPT_TEMPLATE` enforces:
-- French-only responses ("Lucy" persona)
-- Context-only answers (no hallucination)
-- Concise format (max 3 sentences or 5 bullets)
-
-### Vector Search Strategy
-- Multi-query generates 3 variations + runs 4 searches in parallel
-- RRF (Reciprocal Rank Fusion) merges results, deduplicates by document ID
-- Reranking scores final candidates via cosine similarity
-- Top-K documents injected into answer generation prompt
-
-### Document Chunking
-- **HTML:** Split by H1/H2/H3 headers
-- **Markdown:** Split by `#`/`##`/`###`
-- **Tabular:** Line-by-line (no overlap)
-- **Generic:** 450 tokens max, 50 token overlap
-- **Metadata:** Preserves source, page, table flags
-
-### Caching
-- **Semantic Cache:** Redis stores (query embedding, answer, metadata)
-- **Hit Threshold:** 0.92 cosine similarity (configurable via `CACHE_SIMILARITY_THRESHOLD`)
-- **TTL:** 24 hours default
-- **LRU Embedding Cache:** In-memory cache for recent embeddings
-
-## Common Development Scenarios
-
-### Adding a New Ingestion Source
-1. Create loader in `src/ingestion/load/` or extend `UnstructuredLoader.py`
-2. Add endpoint in `src/api/app.py`
-3. Documents flow through `transform_pdf()` pipeline (parsing → chunking → embedding)
-4. Stored automatically in Chroma via collection
-
-### Modifying LLM Behavior
-1. Update prompt in `src/inference/prompting.py::PROMPT_TEMPLATE`
-2. Or modify `src/models/llm.py::LLMClient` for temperature/max_tokens
-
-### Adjusting Retrieval Strategy
-- **Query variations:** Edit `src/inference/multi_query_retriever.py::MULTI_QUERY_PROMPT`
-- **Reranking:** Modify `src/inference/reranking.py::get_reranked_documents(k_final=...)`
-- **Top-K documents:** Adjust `top_k_per_query`, `top_k_final` in `src/inference/service.py::ask_question()`
-
-### Debugging Cache Issues
-- Check Redis health: `src/db/redis_client.py::RedisClient.healthcheck()`
-- Clear semantic cache: Drop `idx:semantic_cache` index in Redis
-- Bypass cache: Comment out `await semantic_cache.get()` in `src/inference/service.py`
-
-## Key Dependencies
-
-- `langchain`, `langchain-openai`, `langchain-chroma` - RAG orchestration
-- `chromadb` - Vector database
-- `redis` - Semantic cache backend
-- `docling` - PDF extraction & parsing
-- `fastapi`, `uvicorn` - API framework
-- `torch`, `transformers` - ML inference support
-- `beautifulsoup4`, `pypdf`, `python-docx` - Document parsing
-- `pytesseract`, `opencv-python` - OCR support
-
-See `requirements.txt` for the full list.
-
-## Deployment Notes
-
-- **Docker image:** Multi-stage build (builder + runtime), `python:3.11-slim` base
-- **Volumes:** `chroma_data` (vector store), `redis_data` (Redis persistence)
-- **Networking:** Services communicate via internal Docker bridge (`app-network`); Redis has no external port
-- **Model Runner:** Accessible via `model-runner.docker.internal` (requires Docker Desktop or `extra_hosts` config)
-- **First run:** Models download ~5.8 GB total, stored in Docker volumes for reuse
+**Principe clean code**
+- Fonctions courtes, une seule responsabilité par fonction
+- Pas de logique métier dans les routes FastAPI (déléguer aux services)
+- Aucune valeur hardcodée : tout passe par `.env` via `os.getenv()`
+- `try/except` obligatoire dans chaque endpoint et chaque appel réseau externe

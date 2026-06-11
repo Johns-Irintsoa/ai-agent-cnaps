@@ -58,9 +58,8 @@
     {
       "url": "https://www.cnaps.mg/fr/contacter/",
       "classes": [
-        "contact-group__title",
-        "contact-group__about",
-        "content-article__texte"
+        "contact-content___title",
+        "contact-group__item default-address"
       ]
     },
     {
@@ -77,6 +76,12 @@
         "result-search",
         "liste-result",
         "liste-result__item grid-result__item"
+      ],
+      "is_contained_list" : true,
+      "item_classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
       ]
     },
     {
@@ -101,11 +106,31 @@
         "title-slide__item",
         "content-article__date",
         "content-article__texte"
+      ],
+      "is_contained_list": true,
+      "item_classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
       ]
     },
     {
       "url": "https://www.cnaps.mg/fr/categorie/hygiene-sante-et-actions-sociales",
       "classes": [
+        "title-slide__item",
+        "content-article__date",
+        "content-article__texte"
+      ]
+    },
+    {
+      "url": "https://www.cnaps.mg/fr/categorie/affiliation",
+      "classes": [
+        "result-search",
+        "liste-result",
+        "liste-result__item grid-result__item"
+      ],
+      "is_contained_list": true,
+      "item_classes": [
         "title-slide__item",
         "content-article__date",
         "content-article__texte"

@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 from .parsing import _pdf_docling
 from .splitting import chuncking_md_data, chunking_md_html
 from .embedding import embed_chunks
+from ..transform.parsing import _parse_html
 from ..scraping.WebPageScrapper import extract_urls
+from ..scraping.models import WebPageContent
 
 load_dotenv()
 
@@ -27,30 +29,31 @@ def transform_pdf(file_path: str) -> Optional[object]:
         Instance ChromaDB VectorStore ou None si le traitement échoue.
     """
     filename = os.path.basename(file_path)
+    try:
+        logger.info("Etape 1 : Parsing de %s", filename)
+        markdown_content = _pdf_docling(file_path)
+        if not markdown_content:
+            logger.error("Etape 1 echouee : Aucun contenu extrait pour %s", filename)
+            return None
 
-    print(f"--- Étape 1 : Parsing de {filename} ---")
-    markdown_content = _pdf_docling(file_path)
+        logger.info("Etape 2 : Decoupage en chunks")
+        json_chunks = chuncking_md_data(
+            md_text=markdown_content,
+            filename=filename,
+            max_chunk_size=int(os.getenv("MAX_CHUNK_SIZE", 1000)),
+            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", 100)),
+        )
 
-    if not markdown_content:
-        print("Erreur : Aucun contenu extrait.")
+        logger.info("Etape 3 : Vectorisation dans ChromaDB")
+        vector_db = embed_chunks(
+            json_chunks=json_chunks,
+            collection_name=os.getenv("COLLECTION_NAME", "rag_cnaps"),
+        )
+        logger.info("Termine : '%s' pret pour le RAG", filename)
+        return vector_db
+    except Exception as e:
+        logger.error("transform_pdf echoue pour %s : %s", filename, e, exc_info=True)
         return None
-
-    print("--- Étape 2 : Découpage en chunks ---")
-    json_chunks = chuncking_md_data(
-        md_text=markdown_content,
-        filename=filename,
-        max_chunk_size=int(os.getenv("MAX_CHUNK_SIZE", 1000)),
-        chunk_overlap=int(os.getenv("CHUNK_OVERLAP", 100)),
-    )
-
-    print("--- Étape 3 : Vectorisation et stockage dans ChromaDB ---")
-    vector_db = embed_chunks(
-        json_chunks=json_chunks,
-        collection_name=os.getenv("COLLECTION_NAME", "rag_cnaps"),
-    )
-
-    print(f"--- Terminé ! Document '{filename}' prêt pour le RAG ---")
-    return vector_db
 
 # Extract Web Pages from www.cnaps.mg
 def transform_web_page(collection_name: str = None) -> Optional[object]:
@@ -89,4 +92,27 @@ def transform_web_page(collection_name: str = None) -> Optional[object]:
 
     logger.info("--- Termine ! %d chunks web stockes dans '%s' ---", len(all_chunks), collection_name)
     return vector_db
+
+
+def transform_url(url: str, classes: List[str], collection_name: Optional[str] = None) -> int:
+    """Parse directement une URL avec les classes CSS fournies, chunk et stocke dans ChromaDB."""
+    coll_name = collection_name or os.getenv("COLLECTION_NAME", "rag_cnaps")
+    try:
+        page = WebPageContent(url=url, classes=classes)
+        extracted = _parse_html(page)
+        if extracted is None:
+            logger.warning("transform_url: aucun contenu extrait depuis %s", url)
+            return 0
+
+        chunks = chunking_md_html(extracted)
+        if not chunks:
+            logger.warning("transform_url: aucun chunk généré depuis %s", url)
+            return 0
+
+        embed_chunks(chunks, coll_name)
+        logger.info("transform_url: %d chunks ingérés depuis %s", len(chunks), url)
+        return len(chunks)
+    except Exception as e:
+        logger.error("transform_url failed for %s: %s", url, e)
+        return 0
 

@@ -381,6 +381,45 @@ def get_class_contained(str1: str, str2: str) -> bool:
     return str1.lower() in str2.lower()
 
 
+# ---------------------------------------------------------------------------
+# 10. CONVERSION DE DATE HTML → ISO
+# ---------------------------------------------------------------------------
+
+_FRENCH_MONTHS = {
+    "janvier": 1, "février": 2, "fevrier": 2,
+    "mars": 3, "avril": 4, "mai": 5, "juin": 6,
+    "juillet": 7, "août": 8, "aout": 8,
+    "septembre": 9, "octobre": 10, "novembre": 11,
+    "décembre": 12, "decembre": 12,
+}
+
+
+def convert_date_from_html(raw: Optional[str]) -> Optional[str]:
+    """
+    Convertit une date HTML brute française en ISO YYYY-MM-DD.
+    "Publié le vendredi 31 mars 2023" → "2023-03-31"
+
+    Le regex cible directement le triplet jour/mois/année — les préfixes
+    ("Publié le") et noms de jours sont ignorés naturellement par le moteur.
+    Retourne None si la conversion échoue.
+    """
+    if not raw:
+        return None
+    text = re.sub(r"\s+", " ", raw).strip()
+    match = re.search(r"(\d{1,2})\s+([a-zéûôîèùàâêïü]+)\s+(\d{4})", text, re.IGNORECASE)
+    if not match:
+        return None
+    day, month_fr, year = match.groups()
+    month_num = _FRENCH_MONTHS.get(month_fr.lower())
+    if not month_num:
+        return None
+    try:
+        from datetime import date as _date
+        return _date(int(year), month_num, int(day)).isoformat()
+    except ValueError:
+        return None
+
+
 def _fragments_to_markdown(frag_soup: BeautifulSoup) -> str:
     lines = []
     for el in frag_soup.find_all(["h1", "h2", "h3", "h4", "p", "ul", "ol"]):

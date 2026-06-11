@@ -50,7 +50,8 @@ export class ChatService {
         id: crypto.randomUUID(),
         role: 'bot',
         content: '',
-        timestamp: new Date()
+        timestamp: new Date(),
+        metadata: response.metadata
       };
 
       this.messages.update(msgs => [...msgs, botMsg]);

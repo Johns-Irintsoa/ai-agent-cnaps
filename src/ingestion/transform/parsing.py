@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from ..scraping.models import WebPageContent, WebPageContentExtracted, WebPageMetadata
 
-from .utils import get_class_contained, _fragments_to_markdown
+from .utils import get_class_contained, _fragments_to_markdown, convert_date_from_html
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
         title_tag = soup.find("title")
 
     title_from_class = title_tag.get_text(strip=True) if title_tag else None
-    date_from_class = date_tag.get_text(strip=True) if date_tag else None
+    date_from_class = convert_date_from_html(date_tag.get_text() if date_tag else None)
 
     metas = None
     if not (title_from_class or date_from_class):

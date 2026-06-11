@@ -108,15 +108,20 @@ def _fetch_paginated_urls(page: WebPageFromJSON) -> List[str]:
 
 def get_all_urls(pages: List[WebPageFromJSON]) -> List[WebPageContent]:
     result: List[WebPageContent] = []
+    seen: set = set()
     for page in pages:
         if page.is_contained_list:
             article_classes = page.item_classes if page.item_classes is not None else page.classes
             urls = _fetch_paginated_urls(page) if page.pagination_selector else _fetch_list_urls(page)
             for url in urls:
-                result.append(WebPageContent(url=url, classes=article_classes))
+                if url not in seen:
+                    seen.add(url)
+                    result.append(WebPageContent(url=url, classes=article_classes))
         else:
-            result.append(WebPageContent(url=page.url, classes=page.classes))
-    logger.info(f"get_all_urls: {len(result)} URL(s) au total")
+            if page.url not in seen:
+                seen.add(page.url)
+                result.append(WebPageContent(url=page.url, classes=page.classes))
+    logger.info(f"get_all_urls: {len(result)} URL(s) au total (après déduplication)")
     return result
 
 
