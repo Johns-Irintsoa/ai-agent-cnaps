@@ -18,7 +18,7 @@
 
     @if (sidebarOpen()) {
       <div class="sidebar-overlay" (click)="toggleSidebar()"></div>
-      <app-sidebar (newChat)="resetAndClose()" />
+      <app-sidebar (newChat)="resetAndClose()" (navigateTo)="handleNavigateTo($event)" />
     }
   </div>
 }

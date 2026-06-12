@@ -96,7 +96,7 @@ def chunking_md_html(page) -> List[WebPageContentChunked]:
 
     # Phase 2 — Semantic split: headers first, then token-aware size
     header_docs = split_by_headers(clean_text)
-    token_docs = split_by_tokens(header_docs, max_tokens=450, overlap_tokens=50)
+    token_docs = split_by_tokens(header_docs, max_tokens=280, overlap_tokens=30)
 
     # Phase 3 — Context enrichment: prefix each chunk with page title
     enriched_texts = [

@@ -75,5 +75,5 @@ class DeleteResponse(BaseModel):
 
 class IngestURLRequest(BaseModel):
     url: str
-    classes: List[str] = []
+    classes: Optional[List[str]] = []
 

@@ -100,6 +100,17 @@ services:
           memory: 256M
           cpus: '0.25'
 
+  redis-ui:
+    container_name: redis-ui
+    image: redis/redisinsight:3.4
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight-data:/data
+    networks:
+      - app-network
+
   chromadb-admin:
     image: fengzhichao/chromadb-admin:latest
     container_name: chromadb-admin
@@ -138,7 +149,8 @@ volumes:
   chroma_data:
   redis_data:
     name: redis_cnaps_data
-
+  redisinsight-data:
+    name: redis_ui_data
 models:
   bge-m3:
     model: gpustack/bge-m3-gguf

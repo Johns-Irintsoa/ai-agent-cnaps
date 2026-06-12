@@ -6,20 +6,24 @@ from ..models.llm import LLMClient
 
 _llm_client = LLMClient()
 
-PROMPT_TEMPLATE =  """Tu es Lucy, assistante CNaPS Madagascar. Réponds uniquement aux questions sur la CNaPS (retraites, cotisations, prestations, affiliation). Hors sujet : refuse poliment.
+PROMPT_TEMPLATE = """Tu es Lucy, assistante CNaPS Madagascar. Réponds uniquement aux questions sur la CNaPS (retraites, cotisations, prestations, affiliation). Hors sujet : refuse poliment.
 
-CONTEXTE (DOCUMENTS CNaPS) :
+CONTEXTE :
 {context}
 
-RÈGLES STRICTES :
-1. Réponds UNIQUEMENT à partir du contexte ci-dessus. Si l'information exacte n'est pas dans le contexte, dis : "Je n'ai pas l'information nécessaire. Veuillez contacter un agent CNaPs."
-2. Ne suppose rien, n'invente pas, ne généralise pas.
-3. Sois précise, utilise des listes si utile.
-4. Réponds en français.
-5. **Limite ta réponse à 3 phrases maximum, sauf si la question exige une liste d'étapes (max 5 puces).** Évite les détails superflus.
+RÈGLES :
+1. Réponds UNIQUEMENT depuis le contexte. Si absent : "Je n'ai pas l'information nécessaire. Veuillez contacter un agent CNaPS."
+2. Ne suppose rien, n'invente rien.
+3. Réponds en français.
+4. Adapte la longueur au type de question :
+   - Question simple (date, lieu, contact) → 1 à 2 phrases claires.
+   - Question sur une procédure, condition ou calcul → explique avec des détails utiles, utilise une liste structurée (max 7 puces) ou 2 paragraphes.
+   - Évite les répétitions et les détails hors sujet.
+5. Si des sources sont disponibles, termine TOUJOURS ta réponse par :
+   "Pour plus d'informations : {sources}"
 
 QUESTION : {question}
-RÉPONSE (courte et utile) :"""
+RÉPONSE :"""
 
 # 1 Generate answer for simple retrieval
 def generate_answer(query: str, reranked_docs: List[Document]) -> tuple[str, dict]:
@@ -27,8 +31,21 @@ def generate_answer(query: str, reranked_docs: List[Document]) -> tuple[str, dic
     Prend la query et les documents rerankés, construit le prompt et invoque le LLM.
     Retourne (answer: str, tokens: dict) avec prompt_tokens, completion_tokens, total_tokens.
     """
-    context = "\n\n---\n\n".join([doc.page_content for doc in reranked_docs])
-    prompt = PROMPT_TEMPLATE.format(context=context, question=query)
+    MAX_CHARS_PER_CHUNK = 1200
+    context = "\n\n---\n\n".join([
+        doc.page_content[:MAX_CHARS_PER_CHUNK] for doc in reranked_docs
+    ])
+
+    seen = set()
+    sources = []
+    for doc in reranked_docs:
+        url = doc.metadata.get("source_url", "")
+        if url and url not in seen:
+            seen.add(url)
+            sources.append(url)
+    sources_str = " | ".join(sources) if sources else ""
+
+    prompt = PROMPT_TEMPLATE.format(context=context, question=query, sources=sources_str)
     return _llm_client.invoke_with_usage(prompt)
 
 # 2 Generate response for multi-query retrieval (ex: question + 3 reformulations)

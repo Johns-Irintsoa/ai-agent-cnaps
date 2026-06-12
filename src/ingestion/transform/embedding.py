@@ -1,5 +1,6 @@
 
 import logging
+import os
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
@@ -56,7 +57,12 @@ def embed_chunks(json_chunks, collection_name="rag_cnaps"):
         metadatas.append(meta)
 
     client = ChromaClient.get_client()
-    collection = client.get_or_create_collection(collection_name)
+    collection = client.get_or_create_collection(
+        collection_name,
+        metadata={
+            "hnsw:space": os.getenv("CHROMA_DISTANCE_METRIC")
+        },
+    )
     embeddings = embeddingModel.embed_documents(texts)
     collection.upsert(
         documents=texts,

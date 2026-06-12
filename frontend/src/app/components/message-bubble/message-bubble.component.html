@@ -1,4 +1,4 @@
-<div class="bubble-row" [class.user]="message.role === 'user'" [class.bot]="message.role === 'bot'">
+<div [id]="message.id" class="bubble-row" [class.user]="message.role === 'user'" [class.bot]="message.role === 'bot'">
   @if (message.role === 'bot') {
     <div class="avatar-sm">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
@@ -11,25 +11,28 @@
     </div>
   }
   <div class="bubble-content">
-    <div class="bubble">{{ message.content }}</div>
-    @if (message.role === 'bot' && message.metadata && (message.metadata.source_url || message.metadata.title)) {
-      <div class="metadata">
-        @if (message.metadata.title) {
-          <span class="meta-title">{{ message.metadata.title }}</span>
-        }
-        <div class="meta-row">
-          @if (message.metadata.date_posted) {
-            <span class="meta-date">{{ message.metadata.date_posted | date:'dd/MM/yyyy' }}</span>
-          }
-          @if (message.metadata.source_url) {
-            <a class="meta-link" [href]="message.metadata.source_url" target="_blank" rel="noopener noreferrer">
-              Voir la source
+    @if (message.role === 'bot') {
+      <div class="bubble" [innerHTML]="message.content | safeHtml"></div>
+    } @else {
+      <div class="bubble">{{ message.content }}</div>
+    }
+
+    @if (message.role === 'bot' && message.metadata?.sources?.length) {
+      <div class="sources">
+        <span class="sources-label">Sources :</span>
+        <div class="source-chips">
+          @for (src of message.metadata!.sources!; track src.source_url) {
+            <a class="source-chip" [href]="src.source_url" target="_blank" rel="noopener noreferrer">
+              {{ src.title || src.source_url }}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
               </svg>
             </a>
           }
         </div>
+        @if (message.metadata?.date_posted) {
+          <span class="meta-date">{{ message.metadata!.date_posted | date:'dd/MM/yyyy' }}</span>
+        }
       </div>
     }
   </div>

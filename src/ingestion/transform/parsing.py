@@ -40,12 +40,10 @@ def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
         logger.warning("_parse_html: echec pour %s", page.url)
         return None
 
-    soup = BeautifulSoup(html, "html.parser")
-    title_tag = None
-    date_tag = None
-    contenu_md = None
-
     if page.classes:
+        soup = BeautifulSoup(html, "html.parser")
+        title_tag = None
+        date_tag = None
         seen: set = set()
         fragments = []
         for cls in page.classes:
@@ -59,6 +57,19 @@ def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
                     fragments.append(str(tag))
         frag_soup = BeautifulSoup("".join(fragments), "html.parser")
         contenu_md = _fragments_to_markdown(frag_soup)
+
+        if title_tag is None:
+            title_tag = soup.find("title")
+
+        title_from_class = title_tag.get_text(strip=True) if title_tag else None
+        date_from_class = convert_date_from_html(date_tag.get_text() if date_tag else None)
+
+        metas = None
+        if not (title_from_class or date_from_class):
+            metas = trafilatura.extract_metadata(html)
+
+        title = title_from_class or (metas.title if metas else "Titre inconnu")
+        date = date_from_class or (metas.date if metas else "Date inconnue")
     else:
         contenu_md = trafilatura.extract(
             html,
@@ -66,19 +77,10 @@ def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
             include_links=True,
             include_formatting=True,
         )
+        metas = trafilatura.extract_metadata(html, default_url=page.url)
 
-    if title_tag is None:
-        title_tag = soup.find("title")
-
-    title_from_class = title_tag.get_text(strip=True) if title_tag else None
-    date_from_class = convert_date_from_html(date_tag.get_text() if date_tag else None)
-
-    metas = None
-    if not (title_from_class or date_from_class):
-        metas = trafilatura.extract_metadata(html)
-
-    title = title_from_class or (metas.title if metas else "Titre inconnu")
-    date = date_from_class or (metas.date if metas else "Date inconnue")
+        title = (metas.title if metas and metas.title else None) or "Titre inconnu"
+        date = (metas.date if metas and metas.date else None) or "Date inconnue"
 
     if not contenu_md:
         logger.warning("_parse_html: extraction vide pour %s, document synthetique cree", page.url)

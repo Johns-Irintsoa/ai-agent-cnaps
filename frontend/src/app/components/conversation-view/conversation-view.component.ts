@@ -26,4 +26,9 @@ export class ConversationViewComponent {
     const el = this.container?.nativeElement;
     if (el) el.scrollTop = el.scrollHeight;
   }
+
+  scrollToMessage(id: string): void {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }

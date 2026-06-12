@@ -1,7 +1,14 @@
+export interface SourceItem {
+  source_url: string;
+  title?: string;
+  date_posted?: string;
+}
+
 export interface MessageMetadata {
   source_url?: string;
   title?: string;
   date_posted?: string;
+  sources?: SourceItem[];
 }
 
 export interface Message {
@@ -14,11 +21,7 @@ export interface Message {
 
 export interface RAGResponse {
   answer: string;
-  metadata?: {
-    source_url?: string;
-    title?: string;
-    date_posted?: string;
-  };
+  metadata?: MessageMetadata;
   from_cache: boolean;
 }
 

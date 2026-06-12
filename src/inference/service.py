@@ -7,7 +7,7 @@ from .multi_query_retriever import reciprocal_rank_fusion
 from .reranking import get_reranked_documents
 from .prompting import generate_answer
 from .timer import RAGTimer
-from .models import QueryMetaData
+from .models import QueryMetaData, SourceItem
 from typing import Dict, Any
 from .cache.semantic_cache import semantic_cache
 
@@ -65,14 +65,26 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     async with timer.ameasure("Generation LLM"):
         answer, tokens = await asyncio.to_thread(generate_answer, user_query, reranked_docs)
 
-    # Métadonnées du document source le plus pertinent
+    # Métadonnées : source principale + toutes les sources uniques rerankées
     metadata = None
     if reranked_docs:
-        m = reranked_docs[0].metadata
+        seen_urls: set = set()
+        sources = []
+        for doc in reranked_docs:
+            m = doc.metadata
+            url = m.get("source_url", "")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                sources.append(SourceItem(
+                    source_url=url,
+                    title=m.get("title", "Titre inconnu"),
+                    date_posted=m.get("date_posted", "Date inconnue"),
+                ))
+        top = reranked_docs[0].metadata
         metadata = QueryMetaData(
-            source_url=m.get("source_url", ""),
-            title=m.get("title", "Titre inconnu"),
-            date_posted=m.get("date_posted", "Date inconnue"),
+            title=top.get("title", "Titre inconnu"),
+            date_posted=top.get("date_posted", "Date inconnue"),
+            sources=sources,
         )
 
     # Rapport de timing dans les logs + retour dans evaluation
