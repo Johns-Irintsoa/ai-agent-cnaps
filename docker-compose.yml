@@ -1,6 +1,6 @@
 services:
   backend:
-    container_name: rag-cnaps-project
+    container_name: backend
     image: img-rag-cnaps:0.0.1
     build:
       context: .
@@ -130,7 +130,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: lucy-frontend-dev
+    container_name: frontend
     ports:
       - "4200:4200"
     volumes:

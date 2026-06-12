@@ -28,7 +28,8 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     timer = RAGTimer()
 
     # 0. Cache sémantique
-    cached = await semantic_cache.get(user_query)
+    async with timer.ameasure("Cache lookup"):
+        cached = await semantic_cache.get(user_query)
     if cached:
         answer, meta_dict = cached
         cached_metadata = QueryMetaData(**meta_dict) if meta_dict else None

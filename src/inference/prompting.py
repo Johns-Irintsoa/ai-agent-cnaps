@@ -19,8 +19,6 @@ RÈGLES :
    - Question simple (date, lieu, contact) → 1 à 2 phrases claires.
    - Question sur une procédure, condition ou calcul → explique avec des détails utiles, utilise une liste structurée (max 7 puces) ou 2 paragraphes.
    - Évite les répétitions et les détails hors sujet.
-5. Si des sources sont disponibles, termine TOUJOURS ta réponse par :
-   "Pour plus d'informations : {sources}"
 
 QUESTION : {question}
 RÉPONSE :"""
@@ -31,21 +29,11 @@ def generate_answer(query: str, reranked_docs: List[Document]) -> tuple[str, dic
     Prend la query et les documents rerankés, construit le prompt et invoque le LLM.
     Retourne (answer: str, tokens: dict) avec prompt_tokens, completion_tokens, total_tokens.
     """
-    MAX_CHARS_PER_CHUNK = 1200
+    MAX_CHARS_PER_CHUNK = 600
     context = "\n\n---\n\n".join([
         doc.page_content[:MAX_CHARS_PER_CHUNK] for doc in reranked_docs
     ])
-
-    seen = set()
-    sources = []
-    for doc in reranked_docs:
-        url = doc.metadata.get("source_url", "")
-        if url and url not in seen:
-            seen.add(url)
-            sources.append(url)
-    sources_str = " | ".join(sources) if sources else ""
-
-    prompt = PROMPT_TEMPLATE.format(context=context, question=query, sources=sources_str)
+    prompt = PROMPT_TEMPLATE.format(context=context, question=query)
     return _llm_client.invoke_with_usage(prompt)
 
 # 2 Generate response for multi-query retrieval (ex: question + 3 reformulations)

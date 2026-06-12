@@ -11,7 +11,7 @@ class LLMClient:
             base_url=os.environ["LLM_BASE_URL"],
             model=os.environ["LLM_MODEL"],
             api_key=os.environ.get("LLM_API_KEY", "no-key"),
-            temperature=0.1,
+            temperature=0.3,
         )
 
     @property
