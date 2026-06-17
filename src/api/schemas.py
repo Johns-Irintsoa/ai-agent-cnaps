@@ -12,6 +12,7 @@ class ChatResponse(BaseModel):
 class RAGResponse(BaseModel):
     answer: str
     metadata: Optional[QueryMetaData] = None
+    needs_matricule: bool = False
 
 
 class IndexRequest(BaseModel):
@@ -59,8 +60,8 @@ class PDFLoadRequest(BaseModel):
     pdf_path: str
 
 
-class DeleteBySourceURLRequest(BaseModel):
-    source_url: str
+class DeleteBySourceRequest(BaseModel):
+    source: str
 
 
 class DeleteByIdsRequest(BaseModel):
