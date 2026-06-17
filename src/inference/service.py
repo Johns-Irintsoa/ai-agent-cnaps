@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import re
+from typing import Dict, Any, Optional
 
 from .query_retriever import get_query_vector, search_by_vector
 from .bm25_retriever import bm25_index
@@ -8,10 +10,22 @@ from .reranking import get_reranked_documents
 from .prompting import generate_answer
 from .timer import RAGTimer
 from .models import QueryMetaData, SourceItem
-from typing import Dict, Any
 from .cache.semantic_cache import semantic_cache
+from .SQLAgent.SQL_agent import run_sql_agent
 
 logger = logging.getLogger(__name__)
+
+_COTISATION_KEYWORDS = {"période", "cotisation", "cotisé", "cotisations", "dernière", "dernier"}
+
+
+def _is_cotisation_intent(message: str) -> bool:
+    words = set(message.lower().split())
+    return bool(words & _COTISATION_KEYWORDS)
+
+
+def _extract_matricule(message: str) -> Optional[str]:
+    match = re.search(r'\b(\d{5,7})\b', message)
+    return match.group(1) if match else None
 
 
 async def ask_question(user_query: str) -> Dict[str, Any]:
@@ -25,6 +39,20 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     5. Reranking cosinus
     6. Génération LLM
     """
+    # Routing SQL Agent (stateless)
+    matricule = _extract_matricule(user_query)
+    if matricule:
+        return await run_sql_agent(user_query)
+
+    if _is_cotisation_intent(user_query):
+        return {
+            "answer": "Pour consulter votre dernière période de cotisation, veuillez me fournir votre numéro de matricule.",
+            "needs_matricule": True,
+            "metadata": None,
+            "evaluation": {},
+            "from_cache": False,
+        }
+
     timer = RAGTimer()
 
     # 0. Cache sémantique
