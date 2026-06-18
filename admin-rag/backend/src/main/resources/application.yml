@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: ${ORACLE_URL:jdbc:oracle:thin:@localhost:1521:XE}
+    username: ${ORACLE_USER:RAG_ADMIN}
+    password: ${ORACLE_PASSWORD:RAG}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.OracleDialect
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+server:
+  port: ${SERVER_PORT:8080}
+
+rag:
+  fastapi-url: ${RAG_FASTAPI_URL:http://localhost:8000}
+  upload-dir: ${UPLOAD_DIR:/app/uploads}
+
+logging:
+  level:
+    mg.cnaps.admin: INFO
+    org.hibernate.SQL: WARN

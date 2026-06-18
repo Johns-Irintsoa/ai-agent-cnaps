@@ -1,0 +1,19 @@
+<aside class="sidebar">
+  <div class="sidebar__brand">
+    <img class="sidebar__logo" src="assets/logo-cnaps.png" alt="CNaPS" />
+    <span class="sidebar__title">RAG Admin</span>
+    <span class="sidebar__subtitle">CNaPS</span>
+  </div>
+
+  <nav class="sidebar__nav">
+    <a
+      *ngFor="let item of navItems"
+      [routerLink]="item.route"
+      routerLinkActive="sidebar__link--active"
+      class="sidebar__link"
+    >
+      <span class="material-symbols-outlined sidebar__link-icon">{{ item.icon }}</span>
+      <span>{{ item.label }}</span>
+    </a>
+  </nav>
+</aside>

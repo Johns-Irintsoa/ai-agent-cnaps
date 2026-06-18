@@ -18,7 +18,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Extract PDF
-def transform_pdf(file_path: str) -> Optional[object]:
+def transform_pdf(file_path: str) -> Optional[int]:
     """
     Pipeline complet pour un fichier PDF : Extraction → Chunking → Vectorisation.
 
@@ -26,7 +26,7 @@ def transform_pdf(file_path: str) -> Optional[object]:
         file_path: Chemin vers le fichier PDF à traiter.
 
     Returns:
-        Instance ChromaDB VectorStore ou None si le traitement échoue.
+        Nombre de chunks indexés, ou None si le traitement échoue.
     """
     filename = os.path.basename(file_path)
     try:
@@ -45,12 +45,12 @@ def transform_pdf(file_path: str) -> Optional[object]:
         )
 
         logger.info("Etape 3 : Vectorisation dans ChromaDB")
-        vector_db = embed_chunks(
+        embed_chunks(
             json_chunks=json_chunks,
             collection_name=os.getenv("COLLECTION_NAME", "rag_cnaps"),
         )
-        logger.info("Termine : '%s' pret pour le RAG", filename)
-        return vector_db
+        logger.info("Termine : '%s' pret pour le RAG (%d chunks)", filename, len(json_chunks))
+        return len(json_chunks)
     except Exception as e:
         logger.error("transform_pdf echoue pour %s : %s", filename, e, exc_info=True)
         return None

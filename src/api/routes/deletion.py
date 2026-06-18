@@ -4,30 +4,31 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
-from ..schemas import DeleteBySourceURLRequest, DeleteByIdsRequest, DeleteResponse
-from ...ingestion.store.delete import delete_by_source_url, delete_by_ids, delete_all
+from ..schemas import DeleteBySourceRequest, DeleteByIdsRequest, DeleteResponse
+from ...ingestion.store.delete import delete_by_source, delete_by_ids, delete_all
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Suppression"])
 
 
-@router.delete("/ingestion/documents/by-url", response_model=DeleteResponse)
-async def delete_documents_by_url(request: DeleteBySourceURLRequest):
-    """Supprime tous les chunks d'une URL source spécifique."""
+@router.delete("/ingestion/documents/by-source", response_model=DeleteResponse)
+async def delete_documents_by_source(request: DeleteBySourceRequest):
+    """Supprime tous les chunks d'un fichier PDF par son nom (metadata source)."""
     try:
         collection_name = os.getenv("COLLECTION_NAME", "rag_cnaps")
-        count = await asyncio.to_thread(delete_by_source_url, request.source_url, collection_name)
+        count = await asyncio.to_thread(delete_by_source, request.source, collection_name)
         if count > 0:
             from ...inference.bm25_retriever import bm25_index
             await asyncio.to_thread(bm25_index.refresh)
         return DeleteResponse(
             status="success",
             deleted_count=count,
-            message=f"{count} chunk(s) supprimé(s) pour {request.source_url}",
+            message=f"{count} chunk(s) supprime(s) pour {request.source}",
         )
     except Exception as e:
-        logger.error("delete_documents_by_url failed: %s", e)
+        logger.error("delete_documents_by_source failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.delete("/ingestion/documents/by-ids", response_model=DeleteResponse)

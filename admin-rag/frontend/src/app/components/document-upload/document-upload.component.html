@@ -1,0 +1,146 @@
+<div class="page">
+  <div class="page__header">
+    <h1 class="page__title">Importer un document</h1>
+  </div>
+
+  <!-- Étapes de progression -->
+  <div class="steps">
+    <div class="step" [class.step--active]="step === 'uploading'" [class.step--done]="['pending','processing','done'].includes(step)">
+      <div class="step__dot">
+        <span *ngIf="['pending','processing','done'].includes(step)" class="material-symbols-outlined">check</span>
+        <span *ngIf="!['pending','processing','done'].includes(step)">1</span>
+      </div>
+      <div class="step__label">Envoi</div>
+    </div>
+    <div class="step__line"></div>
+    <div class="step" [class.step--active]="step === 'pending'" [class.step--done]="['processing','done'].includes(step)">
+      <div class="step__dot">
+        <span *ngIf="['processing','done'].includes(step)" class="material-symbols-outlined">check</span>
+        <span *ngIf="!['processing','done'].includes(step)">2</span>
+      </div>
+      <div class="step__label">En attente</div>
+    </div>
+    <div class="step__line"></div>
+    <div class="step" [class.step--active]="step === 'processing'" [class.step--done]="step === 'done'">
+      <div class="step__dot">
+        <span *ngIf="step === 'done'" class="material-symbols-outlined">check</span>
+        <span *ngIf="step !== 'done'">3</span>
+      </div>
+      <div class="step__label">Indexation</div>
+    </div>
+  </div>
+
+  <!-- Formulaire (visible seulement à l'étape idle) -->
+  <div *ngIf="step === 'idle'" class="upload-card">
+    <!-- Tabs mode -->
+    <div class="mode-tabs">
+      <button class="mode-tab" [class.mode-tab--active]="mode === 'file'" (click)="mode = 'file'">
+        <span class="material-symbols-outlined">folder</span> Fichier
+      </button>
+      <button class="mode-tab" [class.mode-tab--active]="mode === 'url'" (click)="mode = 'url'">
+        <span class="material-symbols-outlined">link</span> URL
+      </button>
+      <button class="mode-tab" [class.mode-tab--active]="mode === 'web'" (click)="mode = 'web'">
+        <span class="material-symbols-outlined">language</span> Pages CNaPS
+      </button>
+    </div>
+
+    <!-- Zone drag & drop -->
+    <div
+      *ngIf="mode === 'file'"
+      class="drop-zone"
+      [class.drop-zone--dragging]="isDragging"
+      [class.drop-zone--selected]="!!selectedFile"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave()"
+      (drop)="onDrop($event)"
+    >
+      <input type="file" id="fileInput" class="drop-zone__input"
+             accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.html"
+             (change)="onFileSelect($event)" />
+
+      <ng-container *ngIf="!selectedFile">
+        <span class="material-symbols-outlined drop-zone__icon">folder_open</span>
+        <p class="drop-zone__text">Glisser-déposer un fichier ici</p>
+        <p class="drop-zone__hint">PDF, DOCX, XLSX, PNG, JPG — max 50 Mo</p>
+        <label for="fileInput" class="btn btn--secondary">Parcourir</label>
+      </ng-container>
+
+      <ng-container *ngIf="selectedFile">
+        <span class="material-symbols-outlined drop-zone__icon" style="color:#22c55e">check_circle</span>
+        <p class="drop-zone__text">{{ selectedFile.name }}</p>
+        <p class="drop-zone__hint">{{ formatSize(selectedFile.size) }}</p>
+        <label for="fileInput" class="btn btn--secondary">Changer</label>
+      </ng-container>
+    </div>
+
+    <!-- Champ URL -->
+    <div *ngIf="mode === 'url'" class="url-form">
+      <label class="form-label" for="urlInput">URL de la page web</label>
+      <input id="urlInput" type="url" class="form-input" placeholder="https://www.cnaps.mg/..."
+             [(ngModel)]="sourceUrl" />
+      <p class="form-hint">Le contenu de la page sera extrait et indexé.</p>
+    </div>
+
+    <button class="btn btn--primary btn--full" [disabled]="!canSubmit" (click)="submit()">
+      <span class="material-symbols-outlined">upload</span> Lancer l'indexation
+    </button>
+
+    <!-- Panneau Pages CNaPS -->
+    <div *ngIf="mode === 'web'" class="web-ingest-panel">
+      <p class="form-hint">
+        Indexe toutes les pages du site <strong>www.cnaps.mg</strong> depuis la liste d'URLs configurée.
+        L'opération peut prendre plusieurs minutes.
+      </p>
+      <button class="btn btn--primary btn--full"
+              [disabled]="webState === 'loading'"
+              (click)="submitWebPages()">
+        <span class="material-symbols-outlined">language</span> Lancer l'indexation CNaPS
+      </button>
+      <div *ngIf="webState === 'loading'" class="status-card status-card--processing" style="margin-top:16px">
+        <div class="spinner"></div>
+        <p>Indexation lancée en arrière-plan…</p>
+      </div>
+      <div *ngIf="webState === 'done'" class="status-card status-card--success" style="margin-top:16px">
+        <span class="material-symbols-outlined" style="color:#22c55e">check_circle</span>
+        <p>{{ webMessage }}</p>
+      </div>
+      <div *ngIf="webState === 'error'" class="status-card status-card--error" style="margin-top:16px">
+        <span class="material-symbols-outlined" style="color:#ef4444">cancel</span>
+        <p>{{ webMessage }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- En cours -->
+  <div *ngIf="step === 'uploading' || step === 'pending' || step === 'processing'" class="status-card status-card--processing">
+    <div class="spinner"></div>
+    <p *ngIf="step === 'uploading'">Envoi du fichier en cours…</p>
+    <p *ngIf="step === 'pending'">Document en attente de traitement…</p>
+    <p *ngIf="step === 'processing'">Indexation en cours dans ChromaDB…</p>
+  </div>
+
+  <!-- Succès -->
+  <div *ngIf="step === 'done'" class="status-card status-card--success">
+    <span class="material-symbols-outlined status-card__icon" style="color:#22c55e">check_circle</span>
+    <h3>Indexation réussie</h3>
+    <p *ngIf="uploadedDoc">
+      <strong>{{ uploadedDoc.filename }}</strong> —
+      {{ uploadedDoc.chunkCount }} chunk(s) indexé(s)
+    </p>
+    <div class="status-card__actions">
+      <button class="btn btn--primary"   (click)="goToDocuments()">Voir les documents</button>
+      <button class="btn btn--secondary" (click)="reset()">Nouvel import</button>
+    </div>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="step === 'error'" class="status-card status-card--error">
+    <span class="material-symbols-outlined status-card__icon" style="color:#ef4444">cancel</span>
+    <h3>Echec de l'indexation</h3>
+    <p class="error-message">{{ errorMessage }}</p>
+    <div class="status-card__actions">
+      <button class="btn btn--secondary" (click)="reset()">Réessayer</button>
+    </div>
+  </div>
+</div>

@@ -13,7 +13,11 @@ router = APIRouter(tags=["Chat"])
 @router.post("/ask", response_model=RAGResponse)
 async def ask(request: ChatRequest):
     try:
-        result = await ask_question(request.message)
+        result = await ask_question(
+            request.message,
+            matricule=request.matricule,
+            password=request.password,
+        )
         return RAGResponse(**result)
     except Exception as e:
         traceback.print_exc()

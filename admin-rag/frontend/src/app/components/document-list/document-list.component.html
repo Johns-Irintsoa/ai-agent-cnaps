@@ -1,0 +1,87 @@
+<div class="page">
+  <div class="page__header">
+    <h1 class="page__title">Documents indexés</h1>
+    <a routerLink="/documents/upload" class="btn btn--primary">
+      <span class="material-symbols-outlined">upload</span> Importer
+    </a>
+  </div>
+
+  <!-- Barre recherche -->
+  <div class="search-bar">
+    <input type="text" class="form-input" placeholder="Rechercher un fichier…"
+           [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" />
+    <button class="btn btn--secondary" (click)="onSearch()">
+      <span class="material-symbols-outlined">search</span>
+    </button>
+    <button *ngIf="searchQuery" class="btn btn--ghost" (click)="clearSearch()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Onglets filtres -->
+  <div class="filter-tabs">
+    <button
+      *ngFor="let tab of tabs"
+      class="filter-tab"
+      [class.filter-tab--active]="activeTab === tab.value"
+      (click)="selectTab(tab.value)"
+    >{{ tab.label }}</button>
+  </div>
+
+  <!-- État chargement / erreur -->
+  <div *ngIf="loading" class="state-loading">Chargement…</div>
+  <div *ngIf="error && !loading" class="state-error">Impossible de charger les documents.</div>
+
+  <!-- Tableau -->
+  <div *ngIf="!loading && !error" class="table-wrapper">
+    <p *ngIf="documents.length === 0" class="empty-state">Aucun document trouvé.</p>
+
+    <table *ngIf="documents.length > 0" class="data-table">
+      <thead>
+        <tr>
+          <th>Nom du fichier</th>
+          <th>Format</th>
+          <th>Taille</th>
+          <th>Date d'import</th>
+          <th>Chunks</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of documents">
+          <td class="filename-cell" [title]="doc.filename">{{ doc.filename }}</td>
+          <td><span class="filetype-badge">{{ doc.fileType }}</span></td>
+          <td>{{ formatSize(doc.fileSize) }}</td>
+          <td>{{ formatDate(doc.importedAt) }}</td>
+          <td>{{ doc.chunkCount || '—' }}</td>
+          <td><app-document-status-badge [status]="doc.status"></app-document-status-badge></td>
+          <td class="actions-cell">
+            <button
+              *ngIf="doc.status === 'ERROR'"
+              class="btn-icon btn-icon--retry"
+              title="Relancer"
+              (click)="retry(doc)"
+            ><span class="material-symbols-outlined">refresh</span></button>
+            <button
+              class="btn-icon btn-icon--delete"
+              title="Supprimer"
+              (click)="delete(doc)"
+            ><span class="material-symbols-outlined">delete</span></button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button class="btn btn--secondary" [disabled]="page === 0" (click)="prevPage()">
+      <span class="material-symbols-outlined">chevron_left</span> Précédent
+    </button>
+    <span class="pagination__info">Page {{ page + 1 }} / {{ totalPages }} ({{ totalElements }} documents)</span>
+    <button class="btn btn--secondary" [disabled]="page >= totalPages - 1" (click)="nextPage()">
+      Suivant <span class="material-symbols-outlined">chevron_right</span>
+    </button>
+  </div>
+</div>

@@ -4,6 +4,8 @@ from ..inference.models import QueryMetaData
 
 class ChatRequest(BaseModel):
     message: str
+    matricule: Optional[str] = None
+    password: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -11,8 +13,9 @@ class ChatResponse(BaseModel):
 
 class RAGResponse(BaseModel):
     answer: str
-    metadata: Optional[QueryMetaData] = None
+    needs_auth: bool = False
     needs_matricule: bool = False
+    metadata: Optional[QueryMetaData] = None
 
 
 class IndexRequest(BaseModel):

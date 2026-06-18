@@ -10,7 +10,9 @@ import { ChatService } from '../../services/chat.service';
   styleUrl: './chat-input.component.scss'
 })
 export class ChatInputComponent {
-  text = signal('');
+  text      = signal('');
+  matricule = signal('');
+  password  = signal('');
 
   constructor(public chat: ChatService) {}
 
@@ -26,5 +28,20 @@ export class ChatInputComponent {
     if (!value || this.chat.isLoading()) return;
     this.chat.sendMessage(value);
     this.text.set('');
+  }
+
+  submitAuth(): void {
+    const m = this.matricule().trim();
+    const p = this.password().trim();
+    if (!m || !p || this.chat.isLoading()) return;
+    this.chat.sendMessageWithAuth(m, p);
+    this.matricule.set('');
+    this.password.set('');
+  }
+
+  cancelAuth(): void {
+    this.matricule.set('');
+    this.password.set('');
+    this.chat.cancelAuth();
   }
 }

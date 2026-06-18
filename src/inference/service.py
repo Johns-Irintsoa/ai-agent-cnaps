@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import re
+from enum import Enum
 from typing import Dict, Any, Optional
+
+import unicodedata
 
 from .query_retriever import get_query_vector, search_by_vector
 from .bm25_retriever import bm25_index
@@ -12,47 +15,93 @@ from .timer import RAGTimer
 from .models import QueryMetaData, SourceItem
 from .cache.semantic_cache import semantic_cache
 from .SQLAgent.SQL_agent import run_sql_agent
+from src.db.oracle_client import OracleClient
 
 logger = logging.getLogger(__name__)
 
-_COTISATION_KEYWORDS = {"période", "cotisation", "cotisé", "cotisations", "dernière", "dernier"}
+
+class Intent(str, Enum):
+    SQL_PERSONAL = "sql_personal"
+    RAG = "rag"
+    OUT_OF_SCOPE = "out_of_scope"
+
+
+_COTISATION_KEYWORDS = {
+    "cotisation", "cotisations", "cotise", "cotises",
+    "periode", "periodes", "derniere", "dernier",
+    "versement", "versements", "salaire", "salaires",
+    "affilie", "affiliation", "solde", "prestation", "prestations",
+}
+
+_OUT_OF_SCOPE_KEYWORDS = {
+    "meteo", "sport", "cuisine", "recette", "film", "musique",
+    "politique", "religion", "crypto", "bitcoin", "football",
+    "cinema", "serie", "jeu", "jeux", "voyage",
+}
+
+_MSG_OUT_OF_SCOPE = "Cette question est en dehors de mon domaine. Je suis Lucy, l'assistante CNaPS — je réponds uniquement aux questions liées à la retraite, aux cotisations et aux prestations CNaPS."
+
+_BASE_RESULT: Dict[str, Any] = {
+    "needs_auth": False,
+    "needs_matricule": False,
+    "metadata": None,
+    "evaluation": {},
+    "from_cache": False,
+}
+
+
+def _normalize(text: str) -> str:
+    return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("ascii").lower()
 
 
 def _is_cotisation_intent(message: str) -> bool:
-    words = set(message.lower().split())
+    words = set(_normalize(message).split())
     return bool(words & _COTISATION_KEYWORDS)
 
 
-def _extract_matricule(message: str) -> Optional[str]:
-    match = re.search(r'\b(\d{5,7})\b', message)
-    return match.group(1) if match else None
+def init_triage(message: str) -> Intent:
+    words = set(_normalize(message).split())
+
+    if words & _OUT_OF_SCOPE_KEYWORDS:
+        return Intent.OUT_OF_SCOPE
+
+    if _is_cotisation_intent(message):
+        return Intent.SQL_PERSONAL
+
+    return Intent.RAG
 
 
-async def ask_question(user_query: str) -> Dict[str, Any]:
+async def ask_question(
+    user_query: str,
+    matricule: Optional[str] = None,
+    password: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Pipeline RAG :
-    0. Cache sémantique
-    1. Embedding de la query
-    2. Retrieval ChromaDB (vecteur pré-calculé)
-    3. Retrieval BM25
-    4. RRF Fusion
-    5. Reranking cosinus
-    6. Génération LLM
+    Pipeline principal — routing via init_triage() :
+      OUT_OF_SCOPE  → réponse hors périmètre
+      SQL_PERSONAL  → authentification Oracle puis SQL Agent
+      RAG           → pipeline RAG (embedding → retrieval → reranking → LLM)
     """
-    # Routing SQL Agent (stateless)
-    matricule = _extract_matricule(user_query)
-    if matricule:
+    intent = init_triage(user_query)
+
+    # --- OUT_OF_SCOPE ---
+    if intent == Intent.OUT_OF_SCOPE:
+        return {**_BASE_RESULT, "answer": _MSG_OUT_OF_SCOPE}
+
+    # --- SQL_PERSONAL ---
+    if intent == Intent.SQL_PERSONAL:
+        if not matricule or not password:
+            return {
+                **_BASE_RESULT,
+                "needs_auth": True,
+                "answer": "Pour accéder à vos données personnelles, veuillez vous authentifier avec votre matricule et mot de passe.",
+            }
+        if not await asyncio.to_thread(OracleClient.verify_auth, matricule, password):
+            logger.warning("Authentification Oracle échouée pour matricule=%s", matricule)
+            return {**_BASE_RESULT, "answer": _MSG_OUT_OF_SCOPE}
         return await run_sql_agent(user_query)
 
-    if _is_cotisation_intent(user_query):
-        return {
-            "answer": "Pour consulter votre dernière période de cotisation, veuillez me fournir votre numéro de matricule.",
-            "needs_matricule": True,
-            "metadata": None,
-            "evaluation": {},
-            "from_cache": False,
-        }
-
+    # --- RAG ---
     timer = RAGTimer()
 
     # 0. Cache sémantique
@@ -62,17 +111,17 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
         answer, meta_dict = cached
         cached_metadata = QueryMetaData(**meta_dict) if meta_dict else None
         return {
+            **_BASE_RESULT,
             "answer": answer,
             "metadata": cached_metadata.model_dump() if cached_metadata else None,
-            "evaluation": {},
             "from_cache": True,
         }
 
-    # 1. Embedding — vecteur réutilisé pour ChromaDB (pas de double encoding)
+    # 1. Embedding
     async with timer.ameasure("Embedding"):
         query_vector = await asyncio.to_thread(get_query_vector, user_query)
 
-    # 2. ChromaDB retrieval — k=8 pour laisser le reranker choisir parmi plus de candidats
+    # 2. ChromaDB retrieval
     async with timer.ameasure("ChromaDB retrieval"):
         vector_docs = await asyncio.to_thread(search_by_vector, query_vector, 8)
 
@@ -80,7 +129,7 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     async with timer.ameasure("BM25"):
         bm25_docs = await asyncio.to_thread(bm25_index.search, user_query, 8)
 
-    # 4. RRF Fusion (CPU pur — exécution directe, pas de thread)
+    # 4. RRF Fusion
     with timer.measure("RRF Fusion"):
         fused_docs = reciprocal_rank_fusion([vector_docs, bm25_docs])[:8]
 
@@ -94,7 +143,7 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
     async with timer.ameasure("Generation LLM"):
         answer, tokens = await asyncio.to_thread(generate_answer, user_query, reranked_docs)
 
-    # Métadonnées : source principale + toutes les sources uniques rerankées
+    # Métadonnées
     metadata = None
     if reranked_docs:
         seen_urls: set = set()
@@ -116,10 +165,8 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
             sources=sources,
         )
 
-    # Rapport de timing dans les logs + retour dans evaluation
     timing = timer.report()
 
-    # Rapport des tokens dans les logs
     estimated_label = " (estimé)" if tokens.get("estimated") else ""
     logger.info(
         "TOKEN USAGE%s — prompt: %d | completion: %d | total: %d",
@@ -129,17 +176,16 @@ async def ask_question(user_query: str) -> Dict[str, Any]:
         tokens.get("total_tokens", 0),
     )
 
-    # 7. Mise en cache (fire-and-forget)
     asyncio.create_task(
         semantic_cache.set(user_query, answer, metadata.model_dump() if metadata else None)
     )
 
     return {
+        **_BASE_RESULT,
         "answer": answer,
         "metadata": metadata.model_dump() if metadata else None,
         "evaluation": {
             "timing": timing,
             "tokens": tokens,
         },
-        "from_cache": False,
     }

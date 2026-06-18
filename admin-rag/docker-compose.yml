@@ -1,0 +1,47 @@
+services:
+
+  # ─── Spring Boot Admin Backend ────────────────────────────────────────────
+  spring-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.back
+    container_name: cnaps_admin_backend
+    ports:
+      - "8081:8080"
+    environment:
+      - ORACLE_URL=jdbc:oracle:thin:@host.docker.internal:1522:XE
+      - ORACLE_USER=${ORACLE_USER:-RAG_ADMIN}
+      - ORACLE_PASSWORD=${ORACLE_PASSWORD:-RAG}
+      - RAG_FASTAPI_URL=http://backend:8000
+      - UPLOAD_DIR=/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - admin-internal
+      - admin-network
+
+  # ─── Angular Admin Frontend ───────────────────────────────────────────────
+  angular-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.front
+    container_name: cnaps_admin_frontend
+    ports:
+      - "4201:80"
+    networks:
+      - admin-internal
+    depends_on:
+      - spring-admin
+
+networks:
+  admin-internal:
+    driver: bridge
+  admin-network:
+    external: true
+    name: admin-network
+
+volumes:
+  uploads_data:
+    name: cnaps_admin_uploads

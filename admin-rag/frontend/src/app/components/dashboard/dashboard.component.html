@@ -1,0 +1,49 @@
+<div class="page">
+  <div class="page__header">
+    <h1 class="page__title">Tableau de bord</h1>
+    <button class="btn btn--secondary" (click)="loadStats()">
+      <span class="material-symbols-outlined">refresh</span> Actualiser
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="state-loading">Chargement…</div>
+  <div *ngIf="error"   class="state-error">Impossible de charger les statistiques.</div>
+
+  <div *ngIf="stats && !loading" class="stats-grid">
+    <div class="stat-card stat-card--total">
+      <div class="stat-card__value">{{ stats.totalIndexed }}</div>
+      <div class="stat-card__label">Total documents</div>
+    </div>
+    <div class="stat-card stat-card--success">
+      <div class="stat-card__value">{{ stats.totalSuccess }}</div>
+      <div class="stat-card__label">Traités avec succès</div>
+    </div>
+    <div class="stat-card stat-card--processing">
+      <div class="stat-card__value">{{ stats.totalProcessing }}</div>
+      <div class="stat-card__label">En cours</div>
+    </div>
+    <div class="stat-card stat-card--pending">
+      <div class="stat-card__value">{{ stats.totalPending }}</div>
+      <div class="stat-card__label">En attente</div>
+    </div>
+    <div class="stat-card stat-card--error">
+      <div class="stat-card__value">{{ stats.totalError }}</div>
+      <div class="stat-card__label">En erreur</div>
+    </div>
+  </div>
+
+  <div *ngIf="stats && stats.lastUpdatedFilename" class="last-update">
+    <span class="last-update__label">Dernière mise à jour :</span>
+    <span class="last-update__file">{{ stats.lastUpdatedFilename }}</span>
+    <span class="last-update__date">{{ formatDate(stats.lastUpdatedAt) }}</span>
+  </div>
+
+  <div class="quick-actions">
+    <a routerLink="/documents/upload" class="btn btn--primary">
+      <span class="material-symbols-outlined">upload</span> Importer un document
+    </a>
+    <a routerLink="/documents" class="btn btn--secondary">
+      <span class="material-symbols-outlined">description</span> Voir tous les documents
+    </a>
+  </div>
+</div>

@@ -50,6 +50,11 @@ COPY requirements/processing.txt /tmp/processing.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r /tmp/processing.txt
 
+# 4. Mises à jour ponctuelles (Oracle, etc.)
+COPY requirements/update1.txt /tmp/update1.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r /tmp/update1.txt
+
 # -----------------------------------------------------------------------------
 # Stage d’exécution (runtime)
 # -----------------------------------------------------------------------------
@@ -65,8 +70,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get update && apt-get install -y --no-install-recommends \
         p7zip-full unrar tesseract-ocr tesseract-ocr-fra \
         poppler-utils libmagic1 libtesseract5 libpoppler-cpp2 \
-        libgl1 libglib2.0-0 libgomp1 wget \
+        libgl1 libglib2.0-0 libgomp1 wget libaio1t64 unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Oracle Instant Client — zip téléchargé manuellement dans instantclient/ (non commité)
+COPY instantclient/instantclient-basic-linux.x64-23.26.2.0.0.zip /tmp/ic.zip
+RUN unzip -q /tmp/ic.zip -d /opt/oracle \
+    && rm /tmp/ic.zip \
+    && echo /opt/oracle/instantclient_23_26 > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1 \
+    && ldconfig
 
 # Copier l’environnement virtuel depuis le builder
 COPY --from=builder /opt/venv /opt/venv
@@ -74,12 +87,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Créer les dossiers de cache utilisateur et ajuster les droits
+# Créer les dossiers de cache utilisateur (pas de chown -R sur /opt/venv)
 RUN mkdir -p /home/appuser/.cache/docling /home/appuser/.cache/huggingface \
-    && chown -R appuser:appuser /home/appuser/.cache \
-    && chown -R appuser:appuser /opt/venv \
     && chown -R appuser:appuser /home/appuser \
-    && chown -R appuser:appuser /app
+    && chown appuser:appuser /app
 
 # Copier le code source et les fichiers de configuration
 COPY src/ /app/src/

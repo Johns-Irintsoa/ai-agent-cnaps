@@ -1,0 +1,18 @@
+[
+  {
+    "input": "Quelles sont les dernières cotisations du travailleur avec le matricule 512196 ?",
+    "query": "SELECT * FROM (SELECT TRAVAILLEUR_MATRICULE, CIT_PERIODE AS COTISATION_PERIODE, CIT_SALAIRE_M1 AS SALAIRE_M1, CIT_SALAIRE_M2 AS SALAIRE_M2, CIT_SALAIRE_M3 AS SALAIRE_M3 FROM SIG.CIT2 WHERE TRAVAILLEUR_MATRICULE = '512196' ORDER BY CIT_PERIODE DESC) WHERE ROWNUM <= 5"
+  },
+  {
+    "input": "Quelle est la dernière période de cotisation enregistrée pour un affilié ?",
+    "query": "SELECT TRAVAILLEUR_MATRICULE, MAX(CIT_PERIODE) AS DERNIERE_PERIODE FROM SIG.CIT2 WHERE TRAVAILLEUR_MATRICULE = '512196' GROUP BY TRAVAILLEUR_MATRICULE"
+  },
+  {
+    "input": "Quel est le salaire déclaré pour le travailleur 512196 sur la période 202401 ?",
+    "query": "SELECT TRAVAILLEUR_MATRICULE, CIT_SALAIRE_M1 AS SALAIRE_M1, CIT_SALAIRE_M2 AS SALAIRE_M2, CIT_SALAIRE_M3 AS SALAIRE_M3 FROM SIG.CIT2 WHERE TRAVAILLEUR_MATRICULE = '512196' AND CIT_PERIODE = '202401'"
+  },
+  {
+    "input": "Combien de périodes de cotisation l'affilié 512196 a-t-il effectuées ?",
+    "query": "SELECT COUNT(TRAVAILLEUR_MATRICULE) AS NB_PERIODES FROM SIG.CIT2 WHERE TRAVAILLEUR_MATRICULE = '512196'"
+  }
+]

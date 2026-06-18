@@ -5,7 +5,11 @@ from typing import List, Optional
 from urllib.parse import urljoin
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+# cnaps.mg uses a certificate not present in minimal Docker CA bundles
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from .models import WebPageContent, WebPageContentExtracted, WebPageFromJSON
 
@@ -49,7 +53,7 @@ def _get_total_pages(soup: BeautifulSoup, selector: Optional[str]) -> int:
 def _fetch_list_urls(page: WebPageFromJSON) -> List[str]:
     logger.info(f"_fetch_list_urls: scraping {page.url}")
     try:
-        response = requests.get(page.url, timeout=10)
+        response = requests.get(page.url, timeout=10, verify=False)
         response.raise_for_status()
     except requests.RequestException as e:
         logger.warning(f"_fetch_list_urls: echec pour {page.url} — {e}")
@@ -71,7 +75,7 @@ def _fetch_paginated_urls(page: WebPageFromJSON) -> List[str]:
 
     logger.info(f"_fetch_paginated_urls: scraping {page.url}")
     try:
-        response = requests.get(page.url, timeout=10)
+        response = requests.get(page.url, timeout=10, verify=False)
         response.raise_for_status()
     except requests.RequestException as e:
         logger.warning(f"_fetch_paginated_urls: echec pour {page.url} — {e}")
@@ -90,7 +94,7 @@ def _fetch_paginated_urls(page: WebPageFromJSON) -> List[str]:
         page_url = f"{page.url}?page={page_num}"
         logger.info(f"_fetch_paginated_urls: scraping {page_url}")
         try:
-            response = requests.get(page_url, timeout=10)
+            response = requests.get(page_url, timeout=10, verify=False)
             response.raise_for_status()
         except requests.RequestException as e:
             logger.warning(f"_fetch_paginated_urls: echec pour {page_url} — {e}")

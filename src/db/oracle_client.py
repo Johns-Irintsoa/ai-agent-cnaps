@@ -7,14 +7,28 @@ import os
 import time
 from typing import Optional
 
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, text, Engine
 from langchain_community.utilities import SQLDatabase
 
 logger = logging.getLogger(__name__)
 
+# Tables Oracle exposées au SQL Agent — frontière d'accès explicite
+_ALLOWED_TABLES = ["sig_travailleurs", "cit2", "sig_mots_pas"]
+
+
+
+try:
+    import oracledb
+    oracledb.init_oracle_client()
+    logger.info("oracledb thick mode activé")
+except Exception as _e:
+    logger.info("oracledb thin mode (Instant Client absent ou déjà initialisé : %s)", _e)
+
 
 class OracleClient:
     """Singleton pour la connexion Oracle (SQLAlchemy + LangChain SQLDatabase)."""
+
+    ALLOWED_TABLES = _ALLOWED_TABLES
 
     _engine: Optional[Engine] = None
     _db: Optional[SQLDatabase] = None
@@ -36,8 +50,8 @@ class OracleClient:
             if engine is None:
                 return None
             try:
-                schema = os.getenv("ORACLE_SCHEMA", "SIG")
-                cls._db = SQLDatabase(engine, schema=schema, include_tables=["CIT2"])
+                schema = os.getenv("ORACLE_SCHEMA")
+                cls._db = SQLDatabase(engine, schema=schema, include_tables=_ALLOWED_TABLES)
                 logger.info("SQLDatabase Oracle initialisé (schéma=%s)", schema)
             except Exception as e:
                 logger.error("Impossible d'initialiser SQLDatabase Oracle : %s", e)
@@ -46,11 +60,11 @@ class OracleClient:
     @classmethod
     def _try_connect(cls) -> Optional[Engine]:
         """Établit la connexion Oracle avec retry x3 et backoff. Retourne None si échec."""
-        host = os.getenv("ORACLE_HOST", "localhost")
-        port = os.getenv("ORACLE_PORT", "1522")
-        sid = os.getenv("ORACLE_SID", "xe")
-        user = os.getenv("ORACLE_USER", "")
-        password = os.getenv("ORACLE_PASSWORD", "")
+        host = os.getenv("ORACLE_HOST")
+        port = os.getenv("ORACLE_PORT")
+        sid = os.getenv("ORACLE_SID")
+        user = os.getenv("ORACLE_USER")
+        password = os.getenv("ORACLE_PASSWORD")
         retries = 3
         backoff = 1.0
 
@@ -90,6 +104,26 @@ class OracleClient:
                 pass
             return True
         except Exception:
+            return False
+
+    @classmethod
+    def verify_auth(cls, matricule: str, password: str) -> bool:
+        """Vérifie le couple matricule/mot de passe dans Oracle."""
+        engine = cls.get_engine()
+        if engine is None:
+            return False
+        try:
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text(
+                        "SELECT 1 FROM sig_mots_pas"
+                        " WHERE travailleur_matricule = :m AND TRAVAILLEUR_PAS = :p"
+                    ),
+                    {"m": matricule, "p": password},
+                ).fetchone()
+                return row is not None
+        except Exception as e:
+            logger.error("Erreur verify_auth : %s", e)
             return False
 
     @classmethod

@@ -19,8 +19,16 @@ export interface Message {
   metadata?: MessageMetadata;
 }
 
+export interface ChatRequest {
+  message: string;
+  matricule?: string;
+  password?: string;
+}
+
 export interface RAGResponse {
   answer: string;
+  needs_auth: boolean;
+  needs_matricule: boolean;
   metadata?: MessageMetadata;
   from_cache: boolean;
 }

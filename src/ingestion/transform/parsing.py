@@ -35,7 +35,7 @@ def _pdf_docling(file_path: str) -> Optional[str]:
 
 
 def _parse_html(page: WebPageContent) -> Optional[WebPageContentExtracted]:
-    html = trafilatura.fetch_url(page.url)
+    html = trafilatura.fetch_url(page.url, no_ssl=True)
     if not html:
         logger.warning("_parse_html: echec pour %s", page.url)
         return None

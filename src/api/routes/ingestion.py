@@ -35,18 +35,18 @@ async def ingest_web_pages() -> WebIngestionResponse:
 
 @router.post("/ingest-pdf")
 async def ingest_pdf(file: UploadFile = File(...)):
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
+    # if not file.filename.endswith(".pdf"):
+    #     raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
     file_path = UPLOAD_DIR / file.filename
     try:
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        result = transform_pdf(str(file_path))
-        if result is None:
+        chunk_count = transform_pdf(str(file_path))
+        if chunk_count is None:
             raise HTTPException(status_code=500, detail="Le traitement du PDF a échoué.")
         from ...inference.bm25_retriever import bm25_index
         asyncio.get_event_loop().run_in_executor(None, bm25_index.refresh)
-        return JSONResponse(content={"message": f"Document '{file.filename}' indexé avec succès", "status": "success"})
+        return JSONResponse(content={"message": f"{chunk_count} chunk(s) indexé(s) depuis '{file.filename}'", "status": "success"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
     finally:

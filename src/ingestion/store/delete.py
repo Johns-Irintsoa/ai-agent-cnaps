@@ -11,20 +11,22 @@ def _get_collection(collection_name: str):
     return client.get_or_create_collection(name=collection_name)
 
 
-def delete_by_source_url(source_url: str, collection_name: str) -> int:
-    """Supprime tous les chunks dont la metadata source_url correspond. Retourne le nombre supprimé."""
+def delete_by_source(source: str, collection_name: str) -> int:
+    """Supprime tous les chunks correspondant à la source (filename PDF ou URL).
+    Cherche dans les deux champs metadata : 'source' (PDF) et 'source_url' (HTML)."""
     try:
         col = _get_collection(collection_name)
-        result = col.get(where={"source_url": source_url}, include=[])
+        where = {"$or": [{"source": source}, {"source_url": source}]}
+        result = col.get(where=where, include=[])
         ids = result.get("ids", [])
         if not ids:
-            logger.warning("delete_by_source_url: aucun document trouvé pour %s", source_url)
+            logger.warning("delete_by_source: aucun chunk trouve pour %s", source)
             return 0
-        col.delete(where={"source_url": source_url})
-        logger.info("delete_by_source_url: %d chunks supprimés pour %s", len(ids), source_url)
+        col.delete(where=where)
+        logger.info("delete_by_source: %d chunks supprimes pour %s", len(ids), source)
         return len(ids)
     except Exception as e:
-        logger.error("delete_by_source_url failed: %s", e)
+        logger.error("delete_by_source failed: %s", e)
         return 0
 
 
