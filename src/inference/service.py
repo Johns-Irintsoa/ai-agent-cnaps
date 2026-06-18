@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import re
 from enum import Enum
 from typing import Dict, Any, Optional
 
@@ -99,7 +98,7 @@ async def ask_question(
         if not await asyncio.to_thread(OracleClient.verify_auth, matricule, password):
             logger.warning("Authentification Oracle échouée pour matricule=%s", matricule)
             return {**_BASE_RESULT, "answer": _MSG_OUT_OF_SCOPE}
-        return await run_sql_agent(user_query)
+        return await run_sql_agent(user_query, matricule=matricule)
 
     # --- RAG ---
     timer = RAGTimer()
@@ -188,4 +187,5 @@ async def ask_question(
             "timing": timing,
             "tokens": tokens,
         },
+        "from_cache": False,
     }

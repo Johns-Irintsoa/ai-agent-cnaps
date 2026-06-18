@@ -13,7 +13,7 @@ from langchain_community.utilities import SQLDatabase
 logger = logging.getLogger(__name__)
 
 # Tables Oracle exposées au SQL Agent — frontière d'accès explicite
-_ALLOWED_TABLES = ["sig_travailleurs", "cit2", "sig_mots_pas"]
+_ALLOWED_TABLES = ["sig_travailleurs", "cit2"]
 
 
 
@@ -51,7 +51,12 @@ class OracleClient:
                 return None
             try:
                 schema = os.getenv("ORACLE_SCHEMA")
-                cls._db = SQLDatabase(engine, schema=schema, include_tables=_ALLOWED_TABLES)
+                cls._db = SQLDatabase(
+                    engine,
+                    schema=schema,
+                    include_tables=_ALLOWED_TABLES,
+                    sample_rows_in_table_info=2,
+                )
                 logger.info("SQLDatabase Oracle initialisé (schéma=%s)", schema)
             except Exception as e:
                 logger.error("Impossible d'initialiser SQLDatabase Oracle : %s", e)
