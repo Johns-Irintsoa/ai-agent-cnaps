@@ -6,3 +6,4 @@ venv/
 .dockerignore
 data/unstructured/
 instantclient/
+frontend/admin-rag/frontend/.angular/
