@@ -138,7 +138,7 @@ def _get_few_shot_selector() -> Optional[_ThresholdedSelector]:
             examples=examples,
             embeddings=embedding_manager.model,
             vectorstore_cls=Chroma,
-            k=2,
+            k=5,
             input_keys=["input"],
         )
         logger.info("FewShotSelector initialise avec %d exemples (seuil=%.2f)", len(examples), _SIMILARITY_THRESHOLD)
